@@ -21,6 +21,6 @@ jobs:
         run: npm ci
 
       - name: Apply database migrations
-        run: npx prisma migrate deploy
+        run: npx prisma migrate resolve --applied 20261011223800_add_review_images && npx prisma migrate deploy
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
