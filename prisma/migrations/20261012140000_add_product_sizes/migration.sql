@@ -1,0 +1,6 @@
+ALTER TABLE "Product"
+ADD COLUMN "sizes" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];
+
+ALTER TABLE "OrderItem"
+ADD COLUMN "selectedColor" TEXT,
+ADD COLUMN "selectedSize" TEXT;

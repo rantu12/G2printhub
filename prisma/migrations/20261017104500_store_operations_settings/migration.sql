@@ -1,0 +1,6 @@
+ALTER TABLE "StoreSettings"
+ADD COLUMN "storeAddress" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "timeZone" TEXT NOT NULL DEFAULT 'Asia/Kolkata',
+ADD COLUMN "defaultOrderStatus" TEXT NOT NULL DEFAULT 'PENDING',
+ADD COLUMN "websiteUrl" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "maintenanceMode" BOOLEAN NOT NULL DEFAULT false;
