@@ -12235,3 +12235,56 @@ body {
     width: 100%;
   }
 }
+/* PrintHub checkout mobile layout */
+@media (max-width: 768px) {
+  main div[style*="grid-template-columns"] {
+    min-width: 0;
+  }
+
+  .checkout-coupon > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .checkout-coupon input {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+@media (max-width: 768px) {
+  main form,
+  main aside {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+}
+.checkout-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.8fr);
+  gap: 24px;
+  align-items: start;
+  width: 100%;
+}
+
+.checkout-layout > form,
+.checkout-layout > aside {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .checkout-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .checkout-layout > form,
+  .checkout-layout > aside {
+    width: 100%;
+  }
+}

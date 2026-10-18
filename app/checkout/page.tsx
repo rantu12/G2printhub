@@ -1302,11 +1302,13 @@ const containerStyle = {
 
 const layoutStyle = {
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1.5fr) minmax(280px, 0.8fr)",
+  gridTemplateColumns: "minmax(0, 1.5fr) minmax(0, 0.8fr)",
   gap: "24px",
   alignItems: "start",
+  width: "100%",
+  maxWidth: "100%",
+  boxSizing: "border-box" as const,
 };
-
 const formCardStyle = {
   background: "#fff",
   border: "1px solid #e5e7eb",
