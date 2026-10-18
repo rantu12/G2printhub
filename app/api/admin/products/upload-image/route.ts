@@ -1,17 +1,21 @@
+
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
+import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
 const maxFileSize = 5 * 1024 * 1024;
+
 const imageTypes = {
   "image/jpeg": {
     extension: "jpg",
     matches: (bytes: Uint8Array) =>
-      bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff,
+      bytes.length >= 3 &&
+      bytes[0] === 0xff &&
+      bytes[1] === 0xd8 &&
+      bytes[2] === 0xff,
   },
   "image/png": {
     extension: "png",
@@ -60,14 +64,19 @@ export async function POST(request: Request) {
     }
 
     const imageType = imageTypes[file.type as keyof typeof imageTypes];
+
     if (!imageType) {
       return NextResponse.json(
-        { success: false, message: "Only JPG, PNG, and WebP images are supported." },
+        {
+          success: false,
+          message: "Only JPG, PNG, and WebP images are supported.",
+        },
         { status: 400 }
       );
     }
 
     const imageBytes = new Uint8Array(await file.arrayBuffer());
+
     if (!imageType.matches(imageBytes)) {
       return NextResponse.json(
         { success: false, message: "The selected file is not a valid image." },
@@ -75,22 +84,17 @@ export async function POST(request: Request) {
       );
     }
 
-    const filename = `${randomUUID()}.${imageType.extension}`;
-    const uploadDirectory = path.join(
-      process.cwd(),
-      "public",
-      "uploads",
-      "products"
-    );
+    const filename = `products/${randomUUID()}.${imageType.extension}`;
 
-    await mkdir(uploadDirectory, { recursive: true });
-    await writeFile(path.join(uploadDirectory, filename), imageBytes, {
-      flag: "wx",
+    const blob = await put(filename, file, {
+      access: "public",
+      addRandomSuffix: false,
+      contentType: file.type,
     });
 
     return NextResponse.json({
       success: true,
-      image: `/uploads/products/${filename}`,
+      image: blob.url,
     });
   } catch (error) {
     console.error("Product image upload error:", error);
