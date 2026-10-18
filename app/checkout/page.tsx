@@ -689,7 +689,7 @@ export default function CheckoutPage() {
           </p>
         </header>
 
-        <div style={layoutStyle}>
+        <div className="checkout-layout">
           <form onSubmit={handleSubmit} style={formCardStyle}>
             <h2 style={sectionTitleStyle}>Delivery information</h2>
 
@@ -1300,15 +1300,6 @@ const containerStyle = {
   margin: "0 auto",
 };
 
-const layoutStyle = {
-  display: "grid",
-  gridTemplateColumns: "minmax(0, 1.5fr) minmax(0, 0.8fr)",
-  gap: "24px",
-  alignItems: "start",
-  width: "100%",
-  maxWidth: "100%",
-  boxSizing: "border-box" as const,
-};
 const formCardStyle = {
   background: "#fff",
   border: "1px solid #e5e7eb",

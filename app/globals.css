@@ -12287,4 +12287,8 @@ body {
   .checkout-layout > aside {
     width: 100%;
   }
+
+  .checkout-layout > aside {
+    order: -1;
+  }
 }
