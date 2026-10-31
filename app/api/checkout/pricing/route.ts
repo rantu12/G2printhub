@@ -10,10 +10,16 @@ export async function GET(request: Request) {
     const params = new URL(request.url).searchParams;
     const requestedProductIds = params.getAll("productId");
     const productIds = [...new Set(requestedProductIds.map((id) => id.trim()))];
+    const requestedCustomPrintIds = params.getAll("customPrintProductId");
+    const customPrintProductIds = [
+      ...new Set(requestedCustomPrintIds.map((id) => id.trim())),
+    ];
 
     if (
-      productIds.length > 100 ||
-      productIds.some((id) => !id || id.length > 100)
+      productIds.length + customPrintProductIds.length > 100 ||
+      [...productIds, ...customPrintProductIds].some(
+        (id) => !id || id.length > 100
+      )
     ) {
       return NextResponse.json(
         { success: false, message: "Invalid cart products." },
@@ -33,15 +39,30 @@ export async function GET(request: Request) {
               },
           })
         : [];
+    const customPrintProducts =
+        customPrintProductIds.length > 0
+          ? await prisma.customPrintProduct.findMany({
+              where: {
+                id: { in: customPrintProductIds },
+                active: true,
+                availability: true,
+                category: { active: true },
+              },
+              select: { id: true },
+            })
+          : [];
     const codEnabled = isCodAvailableForProducts(
-      settings.codEnabled,
-      products.map(
-        (product) =>
-          product.codEnabled &&
-          product.status === "ACTIVE" &&
-          product.availability
-      ),
-      productIds.length
+        settings.codEnabled,
+        [
+          ...products.map(
+            (product) =>
+              product.codEnabled &&
+              product.status === "ACTIVE" &&
+              product.availability
+          ),
+          ...customPrintProducts.map(() => true),
+        ],
+        productIds.length + customPrintProductIds.length
     );
 
     return NextResponse.json({

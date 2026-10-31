@@ -134,6 +134,7 @@ export default function SiteHeader() {
         <div className="shop-top-nav-links">
           <Link href="/">Home</Link>
           <Link href="/products">Products</Link>
+          <Link href="/custom-print">Custom Print</Link>
           <Link href="/orders">Orders</Link>
           <Link href="/cart">
             Cart{itemCount > 0 ? ` (${itemCount})` : ""}

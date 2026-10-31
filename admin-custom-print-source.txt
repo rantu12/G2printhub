@@ -1,0 +1,669 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import Link from "next/link";
+
+type Category = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  image: string | null;
+  active: boolean;
+  sortOrder: number;
+  _count?: { products: number };
+};
+
+type Product = {
+  id: string;
+  name: string;
+  slug: string;
+  sku: string;
+  description: string | null;
+  image: string | null;
+  images: string[];
+  colors: string[];
+  sizes: string[];
+  options: unknown;
+  printAreas: unknown;
+  customizationSettings: unknown;
+  price: string;
+  salePrice: string | null;
+  stock: number;
+  active: boolean;
+  availability: boolean;
+  sortOrder: number;
+  categoryId: string;
+  category: { id: string; name: string };
+  angleImages: { id: string; url: string; label: string | null; sortOrder: number }[];
+};
+
+type CategoryForm = {
+  name: string;
+  slug: string;
+  description: string;
+  image: string;
+  active: boolean;
+  sortOrder: string;
+};
+
+type ProductForm = {
+  name: string;
+  slug: string;
+  sku: string;
+  description: string;
+  categoryId: string;
+  image: string;
+  images: string;
+  colors: string;
+  sizes: string;
+  price: string;
+  salePrice: string;
+  stock: string;
+  active: boolean;
+  availability: boolean;
+  sortOrder: string;
+  options: string;
+  printAreas: string;
+  customizationSettings: string;
+  angleImages: string;
+};
+
+const emptyCategory: CategoryForm = {
+  name: "",
+  slug: "",
+  description: "",
+  image: "",
+  active: true,
+  sortOrder: "0",
+};
+
+const emptyProduct: ProductForm = {
+  name: "",
+  slug: "",
+  sku: "",
+  description: "",
+  categoryId: "",
+  image: "",
+  images: "",
+  colors: "",
+  sizes: "",
+  price: "",
+  salePrice: "",
+  stock: "0",
+  active: true,
+  availability: true,
+  sortOrder: "0",
+  options: "[]",
+  printAreas: "[]",
+  customizationSettings: JSON.stringify(
+    {
+      allowArtwork: true,
+      allowText: true,
+      maxArtworkFileSize: 10485760,
+      acceptedArtworkTypes: ["image/jpeg", "application/pdf"],
+      maxTextLength: 200,
+    },
+    null,
+    2
+  ),
+  angleImages: "[]",
+};
+
+function makeSlug(value: string) {
+  return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+function lines(value: string) {
+  return value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+}
+
+function messageFrom(value: unknown, fallback: string) {
+  return value &&
+    typeof value === "object" &&
+    "message" in value &&
+    typeof value.message === "string"
+    ? value.message
+    : fallback;
+}
+
+async function responseBody(response: Response) {
+  const body: unknown = await response.json();
+  if (!response.ok) throw new Error(messageFrom(body, "Request failed."));
+  return body;
+}
+
+function parseJsonField(value: string, label: string) {
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    throw new Error(`${label} must be valid JSON.`);
+  }
+}
+
+export default function AdminCustomPrint() {
+  const [activeTab, setActiveTab] = useState<"products" | "categories">("products");
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productPagination, setProductPagination] = useState({
+    page: 1,
+    pageSize: 50,
+    total: 0,
+    totalPages: 0,
+  });
+  const [categoryForm, setCategoryForm] = useState<CategoryForm>(emptyCategory);
+  const [productForm, setProductForm] = useState<ProductForm>(emptyProduct);
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editingProduct, setEditingProduct] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [categoryImageFile, setCategoryImageFile] = useState<File | null>(null);
+  const [productImageFile, setProductImageFile] = useState<File | null>(null);
+  const [categorySearch, setCategorySearch] = useState("");
+  const [productSearch, setProductSearch] = useState("");
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const [categoryResponse, firstProductResponse] = await Promise.all([
+        fetch("/api/admin/custom-print/categories", { cache: "no-store" }),
+        fetch(`/api/admin/custom-print/products?page=${productPagination.page}`, { cache: "no-store" }),
+      ]);
+      const [categoryBody, firstProductBody] = await Promise.all([
+        responseBody(categoryResponse),
+        responseBody(firstProductResponse),
+      ]);
+      if (
+        !categoryBody ||
+        typeof categoryBody !== "object" ||
+        !("categories" in categoryBody) ||
+        !Array.isArray(categoryBody.categories)
+      ) {
+        throw new Error("The category response was invalid.");
+      }
+      if (
+        !firstProductBody ||
+        typeof firstProductBody !== "object" ||
+        !("products" in firstProductBody) ||
+        !Array.isArray(firstProductBody.products)
+      ) {
+        throw new Error("The product response was invalid.");
+      }
+      setCategories(categoryBody.categories as Category[]);
+      const pageProducts = firstProductBody.products as Product[];
+      if (
+        "pagination" in firstProductBody &&
+        firstProductBody.pagination &&
+        typeof firstProductBody.pagination === "object" &&
+        "page" in firstProductBody.pagination &&
+        typeof firstProductBody.pagination.page === "number" &&
+        "pageSize" in firstProductBody.pagination &&
+        typeof firstProductBody.pagination.pageSize === "number" &&
+        "total" in firstProductBody.pagination &&
+        typeof firstProductBody.pagination.total === "number" &&
+        "totalPages" in firstProductBody.pagination &&
+        typeof firstProductBody.pagination.totalPages === "number"
+      ) {
+        setProductPagination({
+          page: firstProductBody.pagination.page,
+          pageSize: firstProductBody.pagination.pageSize,
+          total: firstProductBody.pagination.total,
+          totalPages: firstProductBody.pagination.totalPages,
+        });
+      }
+      setProducts(pageProducts);
+    } catch (loadError) {
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "Unable to load Custom Print management data."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [productPagination.page]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => void loadData(), 0);
+    return () => window.clearTimeout(timer);
+  }, [loadData]);
+
+  const filteredCategories = useMemo(() => {
+    const query = categorySearch.trim().toLowerCase();
+    return categories.filter((category) =>
+      `${category.name} ${category.slug}`.toLowerCase().includes(query)
+    );
+  }, [categories, categorySearch]);
+
+  const filteredProducts = useMemo(() => {
+    const query = productSearch.trim().toLowerCase();
+    return products.filter((product) =>
+      `${product.name} ${product.slug} ${product.sku} ${product.category.name}`
+        .toLowerCase()
+        .includes(query)
+    );
+  }, [products, productSearch]);
+
+  function resetCategoryForm() {
+    setEditingCategory(null);
+    setCategoryForm(emptyCategory);
+    setCategoryImageFile(null);
+  }
+
+  function resetProductForm() {
+    setEditingProduct(null);
+    setProductForm({ ...emptyProduct, categoryId: categories[0]?.id ?? "" });
+    setProductImageFile(null);
+  }
+
+  function editCategory(category: Category) {
+    setActiveTab("categories");
+    setEditingCategory(category.id);
+    setCategoryImageFile(null);
+    setCategoryForm({
+      name: category.name,
+      slug: category.slug,
+      description: category.description ?? "",
+      image: category.image ?? "",
+      active: category.active,
+      sortOrder: String(category.sortOrder),
+    });
+    setError("");
+    setNotice("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function editProduct(product: Product) {
+    setActiveTab("products");
+    setEditingProduct(product.id);
+    setProductImageFile(null);
+    const customization = product.customizationSettings;
+    setProductForm({
+      name: product.name,
+      slug: product.slug,
+      sku: product.sku,
+      description: product.description ?? "",
+      categoryId: product.categoryId,
+      image: product.image ?? "",
+      images: product.images.join("\n"),
+      colors: product.colors.join(", "),
+      sizes: product.sizes.join(", "),
+      price: product.price,
+      salePrice: product.salePrice ?? "",
+      stock: String(product.stock),
+      active: product.active,
+      availability: product.availability,
+      sortOrder: String(product.sortOrder),
+      options: JSON.stringify(product.options ?? [], null, 2),
+      printAreas: JSON.stringify(product.printAreas ?? [], null, 2),
+      customizationSettings: JSON.stringify(
+        customization ?? {
+          allowArtwork: true,
+          allowText: true,
+          maxArtworkFileSize: 10485760,
+          acceptedArtworkTypes: ["image/jpeg", "application/pdf"],
+          maxTextLength: 200,
+        },
+        null,
+        2
+      ),
+      angleImages: JSON.stringify(
+        product.angleImages.map(({ url, label, sortOrder }) => ({
+          url,
+          label,
+          sortOrder,
+        })),
+        null,
+        2
+      ),
+    });
+    setError("");
+    setNotice("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function uploadImage(file: File) {
+    const formData = new FormData();
+    formData.append("image", file);
+    const response = await fetch("/api/admin/custom-print/products/upload-image", {
+      method: "POST",
+      body: formData,
+    });
+    const body: unknown = await responseBody(response);
+    if (
+      !body ||
+      typeof body !== "object" ||
+      !("image" in body) ||
+      typeof body.image !== "string"
+    ) {
+      throw new Error("The image upload response was invalid.");
+    }
+    return body.image;
+  }
+
+  async function submitCategory(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      let image = categoryForm.image.trim();
+      if (categoryImageFile) image = await uploadImage(categoryImageFile);
+      const response = await fetch(
+        editingCategory
+          ? `/api/admin/custom-print/categories/${editingCategory}`
+          : "/api/admin/custom-print/categories",
+        {
+          method: editingCategory ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: categoryForm.name.trim(),
+            slug: makeSlug(categoryForm.slug),
+            description: categoryForm.description.trim() || null,
+            image: image || null,
+            active: categoryForm.active,
+            sortOrder: Number(categoryForm.sortOrder),
+          }),
+        }
+      );
+      await responseBody(response);
+      setNotice(editingCategory ? "Category updated." : "Category created.");
+      resetCategoryForm();
+      await loadData();
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Unable to save category.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function submitProduct(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      let image = productForm.image.trim();
+      if (productImageFile) image = await uploadImage(productImageFile);
+      const angleImages = parseJsonField(productForm.angleImages, "Angle images");
+      const response = await fetch(
+        editingProduct
+          ? `/api/admin/custom-print/products/${editingProduct}`
+          : "/api/admin/custom-print/products",
+        {
+          method: editingProduct ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: productForm.name.trim(),
+            slug: makeSlug(productForm.slug),
+            sku: productForm.sku.trim().toUpperCase(),
+            description: productForm.description.trim() || null,
+            categoryId: productForm.categoryId,
+            image: image || null,
+            images: lines(productForm.images),
+            colors: productForm.colors.split(",").map((item) => item.trim()).filter(Boolean),
+            sizes: productForm.sizes.split(",").map((item) => item.trim()).filter(Boolean),
+            price: Number(productForm.price),
+            salePrice: productForm.salePrice ? Number(productForm.salePrice) : null,
+            stock: Number(productForm.stock),
+            active: productForm.active,
+            availability: productForm.availability,
+            sortOrder: Number(productForm.sortOrder),
+            options: parseJsonField(productForm.options, "Options"),
+            printAreas: parseJsonField(productForm.printAreas, "Print areas"),
+            customizationSettings: parseJsonField(
+              productForm.customizationSettings,
+              "Customization settings"
+            ),
+            angleImages,
+          }),
+        }
+      );
+      await responseBody(response);
+      setNotice(editingProduct ? "Product updated." : "Product created.");
+      resetProductForm();
+      await loadData();
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Unable to save product.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function toggleCategory(category: Category) {
+    setBusyId(category.id);
+    setError("");
+    setNotice("");
+    try {
+      await responseBody(
+        await fetch(`/api/admin/custom-print/categories/${category.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ active: !category.active }),
+        })
+      );
+      setNotice(`Category ${category.active ? "deactivated" : "activated"}.`);
+      await loadData();
+    } catch (toggleError) {
+      setError(toggleError instanceof Error ? toggleError.message : "Unable to update category.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function toggleProduct(product: Product) {
+    setBusyId(product.id);
+    setError("");
+    setNotice("");
+    try {
+      await responseBody(
+        await fetch(`/api/admin/custom-print/products/${product.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ active: !product.active }),
+        })
+      );
+      setNotice(`Product ${product.active ? "deactivated" : "activated"}.`);
+      await loadData();
+    } catch (toggleError) {
+      setError(toggleError instanceof Error ? toggleError.message : "Unable to update product.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function deleteCategory(category: Category) {
+    if ((category._count?.products ?? 0) > 0) {
+      setError("This category still contains products. Move or delete them first.");
+      return;
+    }
+    if (!window.confirm(`Delete Custom Print category "${category.name}"?`)) return;
+    setBusyId(category.id);
+    setError("");
+    setNotice("");
+    try {
+      await responseBody(
+        await fetch(`/api/admin/custom-print/categories/${category.id}`, {
+          method: "DELETE",
+        })
+      );
+      if (editingCategory === category.id) resetCategoryForm();
+      setNotice("Category deleted.");
+      await loadData();
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete category.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function deleteProduct(product: Product) {
+    if (!window.confirm(`Delete Custom Print product "${product.name}"? This cannot be undone.`)) return;
+    setBusyId(product.id);
+    setError("");
+    setNotice("");
+    try {
+      await responseBody(
+        await fetch(`/api/admin/custom-print/products/${product.id}`, {
+          method: "DELETE",
+        })
+      );
+      if (editingProduct === product.id) resetProductForm();
+      setNotice("Product deleted.");
+      await loadData();
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete product.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  function chooseFile(file: File | null, kind: "category" | "product") {
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setError("Choose a JPG, PNG, or WebP image.");
+      return;
+    }
+    if (!file.size || file.size > 5 * 1024 * 1024) {
+      setError("Image must be between 1 byte and 5 MB.");
+      return;
+    }
+    setError("");
+    if (kind === "category") setCategoryImageFile(file);
+    else setProductImageFile(file);
+  }
+
+  const input = "custom-admin-input";
+  const textArea = `${input} custom-admin-textarea`;
+
+  return (
+    <main className="admin-products-page custom-admin-page">
+      <div className="admin-page-shell">
+        <header className="admin-page-header">
+          <div>
+            <div className="admin-breadcrumb">
+              <Link href="/admin">Dashboard</Link><span>/</span><span>Custom Print</span>
+            </div>
+            <h1>Custom Print</h1>
+            <p>Manage the separate Custom Print catalog, categories, options, and print areas.</p>
+          </div>
+          <div className="admin-header-actions">
+            <Link href="/admin" className="admin-secondary-button">← Dashboard</Link>
+            <Link href="/custom-print" className="admin-primary-button">Preview customer page</Link>
+          </div>
+        </header>
+
+        <nav className="custom-admin-tabs" aria-label="Custom Print management">
+          <button type="button" className={activeTab === "products" ? "is-active" : ""} onClick={() => setActiveTab("products")}>Products ({products.length})</button>
+          <button type="button" className={activeTab === "categories" ? "is-active" : ""} onClick={() => setActiveTab("categories")}>Categories ({categories.length})</button>
+        </nav>
+
+        {error && <div className="admin-error-box" role="alert"><strong>Unable to complete request:</strong> {error}</div>}
+        {notice && <p className="custom-admin-notice" role="status">{notice}</p>}
+
+        {activeTab === "categories" ? (
+          <section className="custom-admin-layout">
+            <form className="custom-admin-form" onSubmit={submitCategory}>
+              <div className="custom-admin-section-heading">
+                <div><span className="admin-eyebrow">CATEGORY DETAILS</span><h2>{editingCategory ? "Edit category" : "New category"}</h2></div>
+                {editingCategory && <button type="button" className="custom-admin-link-button" onClick={resetCategoryForm}>Cancel edit</button>}
+              </div>
+              <label>Name<input className={input} required maxLength={120} value={categoryForm.name} onChange={(event) => setCategoryForm((current) => ({ ...current, name: event.target.value, slug: current.slug || makeSlug(event.target.value) }))} /></label>
+              <label>Slug<input className={input} required maxLength={160} value={categoryForm.slug} onChange={(event) => setCategoryForm((current) => ({ ...current, slug: makeSlug(event.target.value) }))} /></label>
+              <label>Description<textarea className={textArea} maxLength={4000} rows={3} value={categoryForm.description} onChange={(event) => setCategoryForm((current) => ({ ...current, description: event.target.value }))} /></label>
+              <label>Category image<input className={input} type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => chooseFile(event.target.files?.[0] ?? null, "category")} /><small>JPG, PNG, WebP. Maximum 5 MB.</small></label>
+              {categoryImageFile && <p className="custom-admin-file">Selected image: {categoryImageFile.name}</p>}
+              {categoryForm.image && <p className="custom-admin-file">Current image is set.</p>}
+              <label>Sort order<input className={input} type="number" min="0" max="100000" value={categoryForm.sortOrder} onChange={(event) => setCategoryForm((current) => ({ ...current, sortOrder: event.target.value }))} /></label>
+              <label className="custom-admin-checkbox"><input type="checkbox" checked={categoryForm.active} onChange={(event) => setCategoryForm((current) => ({ ...current, active: event.target.checked }))} /> Active in customer collection</label>
+              <div className="custom-admin-form-actions"><button className="admin-primary-button" type="submit" disabled={saving}>{saving ? "Saving…" : editingCategory ? "Save category" : "Create category"}</button>{!editingCategory && <button className="admin-secondary-button" type="button" onClick={resetCategoryForm}>Clear</button>}</div>
+            </form>
+            <section className="custom-admin-list-panel">
+              <div className="custom-admin-section-heading"><div><span className="admin-eyebrow">SEPARATE CATALOG</span><h2>Categories</h2></div><span>{categories.length}</span></div>
+              <input className={input} type="search" placeholder="Search categories" value={categorySearch} onChange={(event) => setCategorySearch(event.target.value)} />
+              {loading ? <p className="custom-admin-state">Loading categories…</p> : filteredCategories.length === 0 ? <p className="custom-admin-state">No Custom Print categories found.</p> : (
+                <ul className="custom-admin-record-list">
+                  {filteredCategories.map((category) => (
+                    <li key={category.id}>
+                      <div><strong>{category.name}</strong><small>/{category.slug} · {category._count?.products ?? 0} products</small><span className={category.active ? "custom-admin-badge is-active" : "custom-admin-badge"}>{category.active ? "Active" : "Inactive"}</span></div>
+                      <div className="custom-admin-row-actions"><button type="button" onClick={() => editCategory(category)}>Edit</button><button type="button" disabled={busyId === category.id} onClick={() => void toggleCategory(category)}>{category.active ? "Deactivate" : "Activate"}</button><button type="button" className="is-danger" disabled={busyId === category.id || (category._count?.products ?? 0) > 0} title={(category._count?.products ?? 0) > 0 ? "Move or delete products first" : undefined} onClick={() => void deleteCategory(category)}>Delete</button></div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </section>
+        ) : (
+          <section className="custom-admin-layout">
+            <form className="custom-admin-form custom-admin-product-form" onSubmit={submitProduct}>
+              <div className="custom-admin-section-heading">
+                <div><span className="admin-eyebrow">PRODUCT DETAILS</span><h2>{editingProduct ? "Edit product" : "New product"}</h2></div>
+                {editingProduct && <button type="button" className="custom-admin-link-button" onClick={resetProductForm}>Cancel edit</button>}
+              </div>
+              {categories.length === 0 && <p className="custom-admin-warning">Create a Custom Print category before adding products.</p>}
+              <div className="custom-admin-form-grid">
+                <label>Product name<input className={input} required maxLength={160} value={productForm.name} onChange={(event) => setProductForm((current) => ({ ...current, name: event.target.value, slug: current.slug || makeSlug(event.target.value) }))} /></label>
+                <label>Slug<input className={input} required maxLength={180} value={productForm.slug} onChange={(event) => setProductForm((current) => ({ ...current, slug: makeSlug(event.target.value) }))} /></label>
+                <label>SKU<input className={input} required maxLength={80} value={productForm.sku} onChange={(event) => setProductForm((current) => ({ ...current, sku: event.target.value.toUpperCase() }))} /></label>
+                <label>Category<select className={input} required value={productForm.categoryId} onChange={(event) => setProductForm((current) => ({ ...current, categoryId: event.target.value }))}><option value="">Choose a category</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}{!category.active ? " (inactive)" : ""}</option>)}</select></label>
+                <label>Base price (₹)<input className={input} type="number" min="0" step="0.01" required value={productForm.price} onChange={(event) => setProductForm((current) => ({ ...current, price: event.target.value }))} /></label>
+                <label>Sale price (₹)<input className={input} type="number" min="0" step="0.01" value={productForm.salePrice} onChange={(event) => setProductForm((current) => ({ ...current, salePrice: event.target.value }))} /></label>
+                <label>Stock<input className={input} type="number" min="0" step="1" value={productForm.stock} onChange={(event) => setProductForm((current) => ({ ...current, stock: event.target.value }))} /></label>
+                <label>Sort order<input className={input} type="number" min="0" max="100000" value={productForm.sortOrder} onChange={(event) => setProductForm((current) => ({ ...current, sortOrder: event.target.value }))} /></label>
+              </div>
+              <label>Description<textarea className={textArea} rows={4} maxLength={10000} value={productForm.description} onChange={(event) => setProductForm((current) => ({ ...current, description: event.target.value }))} /></label>
+              <div className="custom-admin-form-grid">
+                <label>Colors <small>Comma-separated</small><input className={input} value={productForm.colors} onChange={(event) => setProductForm((current) => ({ ...current, colors: event.target.value }))} placeholder="Black, White, Blue" /></label>
+                <label>Sizes <small>Comma-separated</small><input className={input} value={productForm.sizes} onChange={(event) => setProductForm((current) => ({ ...current, sizes: event.target.value }))} placeholder="S, M, L, XL" /></label>
+              </div>
+              <label>Main product image<input className={input} type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => chooseFile(event.target.files?.[0] ?? null, "product")} /><small>Uploaded through the protected Custom Print Vercel Blob endpoint. Maximum 5 MB.</small></label>
+              {productImageFile && <p className="custom-admin-file">Selected image: {productImageFile.name}</p>}
+              {productForm.image && <p className="custom-admin-file">Current main image is set.</p>}
+              <label>Additional product image URLs <small>One URL per line</small><textarea className={textArea} rows={3} value={productForm.images} onChange={(event) => setProductForm((current) => ({ ...current, images: event.target.value }))} /></label>
+              <label>Product options <small>JSON array; choices can include a priceAdjustment</small><textarea className={`${textArea} custom-admin-code`} rows={7} value={productForm.options} onChange={(event) => setProductForm((current) => ({ ...current, options: event.target.value }))} /></label>
+              <label>Print areas <small>JSON array with dimensions, units, and additionalCharge</small><textarea className={`${textArea} custom-admin-code`} rows={7} value={productForm.printAreas} onChange={(event) => setProductForm((current) => ({ ...current, printAreas: event.target.value }))} /></label>
+              <label>Customization settings <small>JSON object; controls artwork/text availability and upload limits</small><textarea className={`${textArea} custom-admin-code`} rows={7} value={productForm.customizationSettings} onChange={(event) => setProductForm((current) => ({ ...current, customizationSettings: event.target.value }))} /></label>
+              <label>Product-angle images <small>JSON array of URL, optional label, and sortOrder</small><textarea className={`${textArea} custom-admin-code`} rows={5} value={productForm.angleImages} onChange={(event) => setProductForm((current) => ({ ...current, angleImages: event.target.value }))} /></label>
+              <div className="custom-admin-checkboxes">
+                <label className="custom-admin-checkbox"><input type="checkbox" checked={productForm.active} onChange={(event) => setProductForm((current) => ({ ...current, active: event.target.checked }))} /> Active in customer collection</label>
+                <label className="custom-admin-checkbox"><input type="checkbox" checked={productForm.availability} onChange={(event) => setProductForm((current) => ({ ...current, availability: event.target.checked }))} /> Available to customers</label>
+              </div>
+              <div className="custom-admin-form-actions"><button className="admin-primary-button" type="submit" disabled={saving || categories.length === 0}>{saving ? "Saving…" : editingProduct ? "Save product" : "Create product"}</button>{!editingProduct && <button className="admin-secondary-button" type="button" onClick={resetProductForm}>Clear</button>}</div>
+            </form>
+            <section className="custom-admin-list-panel">
+              <div className="custom-admin-section-heading"><div><span className="admin-eyebrow">SEPARATE CATALOG</span><h2>Products</h2></div><span>{products.length}</span></div>
+              <input className={input} type="search" placeholder="Search name, SKU, or category" value={productSearch} onChange={(event) => setProductSearch(event.target.value)} />
+              {loading ? <p className="custom-admin-state">Loading products…</p> : filteredProducts.length === 0 ? <p className="custom-admin-state">No Custom Print products found.</p> : (
+                <ul className="custom-admin-record-list">
+                  {filteredProducts.map((product) => (
+                    <li key={product.id}>
+                      <div className="custom-admin-product-row">
+                        <div className="custom-admin-product-image">{product.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={product.image} alt="" />
+                        ) : <span>✦</span>}</div>
+                        <div><strong>{product.name}</strong><small>{product.category.name} · SKU {product.sku}</small><small>{Number(product.salePrice ?? product.price).toFixed(2)}{product.salePrice ? ` (was ${Number(product.price).toFixed(2)})` : ""} · Stock {product.stock}</small><span className={product.active && product.availability ? "custom-admin-badge is-active" : "custom-admin-badge"}>{product.active && product.availability ? "Active" : "Inactive"}</span></div>
+                      </div>
+                      <div className="custom-admin-row-actions"><button type="button" onClick={() => editProduct(product)}>Edit</button><button type="button" disabled={busyId === product.id} onClick={() => void toggleProduct(product)}>{product.active ? "Deactivate" : "Activate"}</button><button type="button" className="is-danger" disabled={busyId === product.id} onClick={() => void deleteProduct(product)}>Delete</button><Link href={`/custom-print?product=${encodeURIComponent(product.slug)}`}>Preview</Link></div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {!loading && productPagination.totalPages > 1 && (
+                <div className="custom-admin-pagination">
+                  <button type="button" disabled={productPagination.page <= 1} onClick={() => setProductPagination((current) => ({ ...current, page: current.page - 1 }))}>Previous</button>
+                  <span>Page {productPagination.page} of {productPagination.totalPages} · {productPagination.total} products</span>
+                  <button type="button" disabled={productPagination.page >= productPagination.totalPages} onClick={() => setProductPagination((current) => ({ ...current, page: current.page + 1 }))}>Next</button>
+                </div>
+              )}
+            </section>
+          </section>
+        )}
+      </div>
+    </main>
+  );
+}

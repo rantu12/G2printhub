@@ -1,12 +1,11 @@
 ﻿
-import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { encryptArtworkSecret } from "@/lib/artwork-secrets";
 import { getCurrentUser } from "@/lib/auth";
 import {
-  artworkBucket,
-  getSupabaseArtwork,
-} from "@/lib/supabase-artwork";
+  removePrivateArtwork,
+  savePrivateArtwork,
+} from "@/lib/local-private-artwork";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -20,7 +19,6 @@ function authenticationError(error: unknown) {
       { status: 401 }
     );
   }
-
   return null;
 }
 
@@ -64,10 +62,7 @@ export async function POST(request: Request) {
 
     const uploadedFile = file instanceof File ? file : null;
 
-    if (
-      uploadedFile &&
-      (uploadedFile.size === 0 || uploadedFile.size > maxFileSize)
-    ) {
+    if (uploadedFile && (uploadedFile.size === 0 || uploadedFile.size > maxFileSize)) {
       return NextResponse.json(
         { success: false, message: "The file must be between 1 byte and 10 MB." },
         { status: 400 }
@@ -76,7 +71,7 @@ export async function POST(request: Request) {
 
     const types = {
       "image/jpeg": {
-        extension: "jpg",
+        extension: "jpg" as const,
         matches: (bytes: Uint8Array) =>
           bytes.length >= 3 &&
           bytes[0] === 0xff &&
@@ -84,15 +79,12 @@ export async function POST(request: Request) {
           bytes[2] === 0xff,
       },
       "application/pdf": {
-        extension: "pdf",
+        extension: "pdf" as const,
         matches: (bytes: Uint8Array) =>
           bytes.length >= 5 &&
           String.fromCharCode(...bytes.subarray(0, 5)) === "%PDF-",
       },
-    } satisfies Record<
-      string,
-      { extension: string; matches: (bytes: Uint8Array) => boolean }
-    >;
+    };
 
     const fileType = uploadedFile
       ? types[uploadedFile.type as keyof typeof types]
@@ -176,11 +168,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (
-      pdfPassword &&
-      uploadedFile &&
-      uploadedFile.type !== "application/pdf"
-    ) {
+    if (pdfPassword && uploadedFile && uploadedFile.type !== "application/pdf") {
       return NextResponse.json(
         { success: false, message: "A PDF password can only be used with a PDF file." },
         { status: 400 }
@@ -193,27 +181,12 @@ export async function POST(request: Request) {
     let fileSize = existingArtwork?.fileSize ?? null;
 
     if (uploadedFile && fileType && bytes) {
-      storageKey = `${randomUUID()}.${fileType.extension}`;
-      fileName = uploadedFile.name.slice(0, 255) || `artwork.${fileType.extension}`;
+      storageKey = await savePrivateArtwork(bytes, fileType.extension);
+      uploadedStorageKey = storageKey;
+      fileName = uploadedFile.name.replace(/["\\\r\n]/g, "_").slice(0, 255)
+        || `artwork.${fileType.extension}`;
       contentType = uploadedFile.type;
       fileSize = uploadedFile.size;
-
-      const { error } = await getSupabaseArtwork()
-        .storage.from(artworkBucket)
-        .upload(storageKey, bytes, {
-          contentType,
-          upsert: false,
-        });
-
-      if (error) {
-        console.error("Supabase artwork upload failed:", error.message);
-        return NextResponse.json(
-          { success: false, message: "Unable to upload artwork to storage." },
-          { status: 502 }
-        );
-      }
-
-      uploadedStorageKey = storageKey;
     }
 
     const encryptedPdfPassword = pdfPassword
@@ -235,11 +208,7 @@ export async function POST(request: Request) {
           select: { id: true, fileName: true },
         })
       : await prisma.customerArtwork.create({
-          data: {
-            ...data,
-            userId: user.id,
-            productId: product.id,
-          },
+          data: { ...data, userId: user.id, productId: product.id },
           select: { id: true, fileName: true },
         });
 
@@ -250,12 +219,10 @@ export async function POST(request: Request) {
       existingArtwork?.storageKey &&
       existingArtwork.storageKey !== storageKey
     ) {
-      const { error } = await getSupabaseArtwork()
-        .storage.from(artworkBucket)
-        .remove([existingArtwork.storageKey]);
-
-      if (error) {
-        console.error("Unable to remove replaced customer artwork:", error.message);
+      try {
+        await removePrivateArtwork(existingArtwork.storageKey);
+      } catch (error) {
+        console.error("Unable to remove replaced local artwork:", error);
       }
     }
 
@@ -266,15 +233,9 @@ export async function POST(request: Request) {
   } catch (error) {
     if (uploadedStorageKey) {
       try {
-        const { error: cleanupError } = await getSupabaseArtwork()
-          .storage.from(artworkBucket)
-          .remove([uploadedStorageKey]);
-
-        if (cleanupError) {
-          console.error("Unable to remove failed customer artwork upload:", cleanupError.message);
-        }
+        await removePrivateArtwork(uploadedStorageKey);
       } catch (cleanupError) {
-        console.error("Artwork cleanup failed:", cleanupError);
+        console.error("Artwork upload cleanup failed:", cleanupError);
       }
     }
 
@@ -282,7 +243,6 @@ export async function POST(request: Request) {
     if (auth) return auth;
 
     console.error("Customer artwork upload error:", error);
-
     return NextResponse.json(
       { success: false, message: "Unable to upload artwork." },
       { status: 500 }

@@ -1,6 +1,7 @@
 
 import { randomUUID } from "node:crypto";
-import { put } from "@vercel/blob";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 
 const maxFileSize = 5 * 1024 * 1024;
 
@@ -38,13 +39,23 @@ const imageTypes = {
   { extension: string; matches: (bytes: Uint8Array) => boolean }
 >;
 
+type ImageFolder =
+  | "categories"
+  | "homepage"
+  | "reviews"
+  | "custom-print";
+
 type ImageUploadResult =
   | { success: true; image: string }
-  | { success: false; status: 400; message: string };
+  | {
+      success: false;
+      status: 400 | 500;
+      message: string;
+    };
 
 export async function saveUploadedImage(
   file: FormDataEntryValue | null,
-  folder: "categories" | "homepage" | "reviews"
+  folder: ImageFolder
 ): Promise<ImageUploadResult> {
   if (!(file instanceof File)) {
     return {
@@ -82,23 +93,147 @@ export async function saveUploadedImage(
     };
   }
 
-  const filename = `${folder}/${randomUUID()}.${imageType.extension}`;
+  const filename = `${randomUUID()}.${imageType.extension}`;
+  const relativePath = path.posix.join("uploads", folder, filename);
+  const uploadDirectory = path.join(
+    process.cwd(),
+    "public",
+    "uploads",
+    folder
+  );
+  const destination = path.join(uploadDirectory, filename);
 
-  const blob = await put(filename, file, {
-    access: "public",
-    addRandomSuffix: false,
-    contentType: file.type,
-  });
+  try {
+    await mkdir(uploadDirectory, { recursive: true });
+    await writeFile(destination, imageBytes, { flag: "wx" });
 
-  return {
-    success: true,
-    image: blob.url,
-  };
+    return {
+      success: true,
+      image: `/${relativePath}`,
+    };
+  } catch (error) {
+    console.error("Local image storage failed:", error);
+
+    return {
+      success: false,
+      status: 500,
+      message: "Unable to save image locally. Check the uploads folder permissions.",
+    };
+  }
 }
 
 export async function saveAdminImage(
   file: FormDataEntryValue | null,
-  folder: "categories" | "homepage"
+  folder: "categories" | "homepage" | "custom-print"
 ) {
   return saveUploadedImage(file, folder);
+}
+
+const max3DModelSize = 20 * 1024 * 1024;
+
+export type ModelUploadResult =
+  | { success: true; modelUrl: string }
+  | {
+      success: false;
+      status: 400 | 500;
+      message: string;
+    };
+
+export async function saveAdmin3DModel(
+  file: FormDataEntryValue | null
+): Promise<ModelUploadResult> {
+  if (!(file instanceof File)) {
+    return {
+      success: false,
+      status: 400,
+      message: "Choose a GLB file to upload.",
+    };
+  }
+
+  if (
+    !file.name.toLowerCase().endsWith(".glb") ||
+    file.size < 12 ||
+    file.size > max3DModelSize
+  ) {
+    return {
+      success: false,
+      status: 400,
+      message: "Choose a GLB file between 12 bytes and 20 MB.",
+    };
+  }
+
+  let bytes: Uint8Array;
+
+  try {
+    bytes = new Uint8Array(await file.arrayBuffer());
+  } catch {
+    return {
+      success: false,
+      status: 400,
+      message: "Unable to read the uploaded model.",
+    };
+  }
+
+  // GLB header:
+  // magic = "glTF", version = 2, declared length = file length
+  const view = new DataView(
+    bytes.buffer,
+    bytes.byteOffset,
+    bytes.byteLength
+  );
+
+  const hasValidHeader =
+    bytes[0] === 0x67 &&
+    bytes[1] === 0x6c &&
+    bytes[2] === 0x54 &&
+    bytes[3] === 0x46 &&
+    view.getUint32(4, true) === 2 &&
+    view.getUint32(8, true) === bytes.byteLength;
+
+  if (!hasValidHeader) {
+    return {
+      success: false,
+      status: 400,
+      message: "The file does not have a valid GLB v2 header.",
+    };
+  }
+
+  const filename = `${randomUUID()}.glb`;
+  const relativePath = path.posix.join(
+    "uploads",
+    "custom-print",
+    "models",
+    filename
+  );
+
+  const uploadDirectory = path.join(
+    process.cwd(),
+    "public",
+    "uploads",
+    "custom-print",
+    "models"
+  );
+
+  try {
+    await mkdir(uploadDirectory, { recursive: true });
+
+    await writeFile(
+      path.join(uploadDirectory, filename),
+      bytes,
+      { flag: "wx" }
+    );
+
+    return {
+      success: true,
+      modelUrl: `/${relativePath}`,
+    };
+  } catch (error) {
+    console.error("Local 3D model storage failed:", error);
+
+    return {
+      success: false,
+      status: 500,
+      message: "Unable to save the 3D model. Check uploads folder permissions.",
+    };
+  }
 }

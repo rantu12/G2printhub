@@ -26,6 +26,7 @@ export const runtime = "nodejs";
 type CheckoutItem = {
   productId: string;
   quantity: number;
+  productType?: "PRODUCT" | "CUSTOM_PRINT";
   artworkId?: string;
   selectedColor?: string;
   selectedSize?: string;
@@ -69,6 +70,7 @@ async function cancelCashfreeOrderAndReleaseStock(orderId: string) {
           select: {
             id: true,
             productId: true,
+            customPrintProductId: true,
             quantity: true,
           },
         },
@@ -101,6 +103,12 @@ async function cancelCashfreeOrderAndReleaseStock(orderId: string) {
           data: { stock: { increment: item.quantity } },
         });
       }
+      if (item.customPrintProductId) {
+        await tx.customPrintProduct.updateMany({
+          where: { id: item.customPrintProductId },
+          data: { stock: { increment: item.quantity } },
+        });
+      }
     }
     if (order.couponId) {
       await tx.coupon.updateMany({
@@ -111,6 +119,13 @@ async function cancelCashfreeOrderAndReleaseStock(orderId: string) {
     await tx.customerArtwork.updateMany({
       where: { orderItemId: { in: order.items.map((item) => item.id) } },
       data: { orderItemId: null },
+    });
+    await tx.orderItem.updateMany({
+      where: {
+        id: { in: order.items.map((item) => item.id) },
+        customPrintArtworkId: { not: null },
+      },
+      data: { customPrintArtworkId: null },
     });
   });
 }
@@ -207,9 +222,12 @@ export async function POST(request: Request) {
       string,
       {
         productId: string;
+        productType: "PRODUCT" | "CUSTOM_PRINT";
+        productKey: string;
         selectedColor: string | null;
         selectedSize: string | null;
         quantity: number;
+        customPrintArtworkId: string | null;
       }
     >();
     const artworkIds = new Map<string, string>();
@@ -230,6 +248,18 @@ export async function POST(request: Request) {
       }
 
       const id = item.productId.trim();
+      if (
+        item.productType !== undefined &&
+        item.productType !== "PRODUCT" &&
+        item.productType !== "CUSTOM_PRINT"
+      ) {
+        return NextResponse.json(
+          { success: false, message: "Invalid product type." },
+          { status: 400 }
+        );
+      }
+      const productType = item.productType ?? "PRODUCT";
+      const productKey = `${productType}:${id}`;
       if (
         (item.selectedColor !== undefined &&
           (typeof item.selectedColor !== "string" ||
@@ -254,11 +284,29 @@ export async function POST(request: Request) {
       }
 
       const artworkId = item.artworkId?.trim();
-      const existingArtworkId = artworkIds.get(id);
+      if (productType === "CUSTOM_PRINT" && !artworkId) {
+        return NextResponse.json(
+          { success: false, message: "Save your custom design before checkout." },
+          { status: 400 }
+        );
+      }
+      const selectedColor = item.selectedColor?.trim() ?? null;
+      const selectedSize = item.selectedSize?.trim() ?? null;
+      const variantKey = JSON.stringify([
+        productType,
+        id,
+        selectedColor,
+        selectedSize,
+        productType === "CUSTOM_PRINT" ? artworkId : null,
+      ]);
+      const artworkKey =
+        productType === "CUSTOM_PRINT" ? variantKey : productKey;
+      const existingArtworkId = artworkIds.get(artworkKey);
       if (
-        (existingArtworkId && artworkId && existingArtworkId !== artworkId) ||
-        (existingArtworkId && !artworkId) ||
-        (!existingArtworkId && artworkId && quantities.has(id))
+        productType === "PRODUCT" &&
+        ((existingArtworkId && artworkId && existingArtworkId !== artworkId) ||
+          (existingArtworkId && !artworkId) ||
+          (!existingArtworkId && artworkId && quantities.has(productKey)))
       ) {
         return NextResponse.json(
           {
@@ -268,14 +316,12 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
-      if (artworkId) artworkIds.set(id, artworkId);
+      if (artworkId) artworkIds.set(artworkKey, artworkId);
 
-      const selectedColor = item.selectedColor?.trim() ?? null;
-      const selectedSize = item.selectedSize?.trim() ?? null;
-      const variantKey = JSON.stringify([id, selectedColor, selectedSize]);
       const variant = variantQuantities.get(variantKey);
       const nextVariantQuantity = (variant?.quantity ?? 0) + item.quantity;
-      const nextProductQuantity = (quantities.get(id) ?? 0) + item.quantity;
+      const nextProductQuantity =
+        (quantities.get(productKey) ?? 0) + item.quantity;
 
       if (nextVariantQuantity > 99 || nextProductQuantity > 99) {
         return NextResponse.json(
@@ -284,16 +330,25 @@ export async function POST(request: Request) {
         );
       }
 
-      quantities.set(id, nextProductQuantity);
+      quantities.set(productKey, nextProductQuantity);
       variantQuantities.set(variantKey, {
         productId: id,
+        productType,
+        productKey,
         selectedColor,
         selectedSize,
         quantity: nextVariantQuantity,
+        customPrintArtworkId:
+          productType === "CUSTOM_PRINT" ? artworkId ?? null : null,
       });
     }
 
-    const productIds = [...quantities.keys()];
+    const productIds = [...new Set([...variantQuantities.values()]
+      .filter((item) => item.productType === "PRODUCT")
+      .map((item) => item.productId))];
+    const customPrintProductIds = [...new Set([...variantQuantities.values()]
+      .filter((item) => item.productType === "CUSTOM_PRINT")
+      .map((item) => item.productId))];
 
     const order = await prisma.$transaction(async (tx) => {
       const products = await tx.product.findMany({
@@ -307,11 +362,24 @@ export async function POST(request: Request) {
       if (products.length !== productIds.length) {
         throw new Error("PRODUCT_UNAVAILABLE");
       }
+      const customPrintProducts = await tx.customPrintProduct.findMany({
+        where: {
+          id: { in: customPrintProductIds },
+          active: true,
+          availability: true,
+          category: { active: true },
+        },
+      });
+      if (customPrintProducts.length !== customPrintProductIds.length) {
+        throw new Error("PRODUCT_UNAVAILABLE");
+      }
       if (
         paymentMethod === "COD" &&
         !isCodAvailableForProducts(
           true,
-          products.map((product) => product.codEnabled)
+          products.map((product) => product.codEnabled).concat(
+            customPrintProducts.map(() => true)
+          )
         )
       ) {
         throw new Error("PRODUCT_COD_DISABLED");
@@ -319,6 +387,9 @@ export async function POST(request: Request) {
 
       const productMap = new Map(
         products.map((product) => [product.id, product])
+      );
+      const customPrintProductMap = new Map(
+        customPrintProducts.map((product) => [product.id, product])
       );
       const enabledProductIds = products
         .filter((product) => product.customerArtworkEnabled)
@@ -341,19 +412,46 @@ export async function POST(request: Request) {
           latestArtworkByProduct.set(artwork.productId, artwork.id);
         }
       }
+      const requestedCustomArtworkIds = [
+        ...new Set(
+          [...variantQuantities.values()]
+            .filter((item) => item.productType === "CUSTOM_PRINT")
+            .map((item) => item.customPrintArtworkId)
+            .filter((id): id is string => Boolean(id))
+        ),
+      ];
+      const customPrintArtworks = await tx.customPrintArtwork.findMany({
+        where: {
+          id: { in: requestedCustomArtworkIds },
+          userId: user.id,
+          productId: { in: customPrintProductIds },
+          orderItems: { none: {} },
+        },
+        select: {
+          id: true,
+          productId: true,
+          designConfiguration: true,
+        },
+      });
+      const customPrintArtworkMap = new Map(
+        customPrintArtworks.map((artwork) => [artwork.id, artwork])
+      );
 
       const orderItems: {
-        productId: string;
+        productId: string | null;
+        customPrintProductId: string | null;
+        customPrintArtworkId: string | null;
         productName: string;
         productSlug: string;
         productImage: string | null;
-        sku: string;
+        sku: string | null;
         quantity: number;
         unitPrice: string;
         lineTotal: string;
         artworkId: string | null;
         selectedColor: string | null;
         selectedSize: string | null;
+        productType: "PRODUCT" | "CUSTOM_PRINT";
       }[] = [];
 
       let subtotalCents = 0;
@@ -361,50 +459,94 @@ export async function POST(request: Request) {
 
       for (const {
         productId,
+        productType,
+        productKey,
         selectedColor,
         selectedSize,
         quantity,
+        customPrintArtworkId: requestedCustomPrintArtworkId,
       } of variantQuantities.values()) {
-        const product = productMap.get(productId);
+        let productName: string;
+        let productSlug: string;
+        let productImage: string | null;
+        let sku: string | null;
+        let databasePrice: number;
+        let artworkId: string | null = null;
+        let customPrintArtworkId: string | null = null;
 
-        if (!product) {
-          throw new Error("PRODUCT_UNAVAILABLE");
-        }
-        if (
-          (product.colors.length > 0 &&
-            (!selectedColor || !product.colors.includes(selectedColor))) ||
-          (product.colors.length === 0 && selectedColor) ||
-          (product.sizes.length > 0 &&
-            (!isProductSize(selectedSize) ||
-              !product.sizes.includes(selectedSize))) ||
-          (product.sizes.length === 0 && selectedSize)
-        ) {
-          throw new Error("INVALID_PRODUCT_VARIANT");
-        }
-        if (product.stock < (quantities.get(productId) ?? 0)) {
-          throw new Error("INSUFFICIENT_STOCK");
-        }
-
-        const requestedArtworkId = product.customerArtworkEnabled
-          ? artworkIds.get(productId) ??
-            latestArtworkByProduct.get(productId) ??
-            null
-          : null;
-        if (requestedArtworkId) {
-          const artwork = artworkMap.get(requestedArtworkId);
-          if (!artwork || artwork.productId !== product.id) {
-            throw new Error("INVALID_ARTWORK");
+        if (productType === "CUSTOM_PRINT") {
+          const product = customPrintProductMap.get(productId);
+          if (!product) throw new Error("PRODUCT_UNAVAILABLE");
+          if (
+            (product.colors.length > 0 &&
+              (!selectedColor || !product.colors.includes(selectedColor))) ||
+            (product.colors.length === 0 && selectedColor) ||
+            (product.sizes.length > 0 &&
+              (!isProductSize(selectedSize) ||
+                !product.sizes.includes(selectedSize))) ||
+            (product.sizes.length === 0 && selectedSize)
+          ) {
+            throw new Error("INVALID_PRODUCT_VARIANT");
           }
-        }
-        const artworkId =
-          requestedArtworkId && !artworkAssignedToProduct.has(productId)
-            ? requestedArtworkId
+          if (product.stock < (quantities.get(productKey) ?? 0)) {
+            throw new Error("INSUFFICIENT_STOCK");
+          }
+
+          const requestedArtworkId = requestedCustomPrintArtworkId;
+          const artwork = requestedArtworkId
+            ? customPrintArtworkMap.get(requestedArtworkId)
+            : undefined;
+          if (!artwork || artwork.productId !== product.id) {
+            throw new Error("INVALID_CUSTOM_PRINT_ARTWORK");
+          }
+          customPrintArtworkId = artwork.id;
+          productName = product.name;
+          productSlug = product.slug;
+          productImage = product.image;
+          sku = product.sku;
+          databasePrice = Number(product.salePrice ?? product.price);
+        } else {
+          const product = productMap.get(productId);
+          if (!product) throw new Error("PRODUCT_UNAVAILABLE");
+          if (
+            (product.colors.length > 0 &&
+              (!selectedColor || !product.colors.includes(selectedColor))) ||
+            (product.colors.length === 0 && selectedColor) ||
+            (product.sizes.length > 0 &&
+              (!isProductSize(selectedSize) ||
+                !product.sizes.includes(selectedSize))) ||
+            (product.sizes.length === 0 && selectedSize)
+          ) {
+            throw new Error("INVALID_PRODUCT_VARIANT");
+          }
+          if (product.stock < (quantities.get(productKey) ?? 0)) {
+            throw new Error("INSUFFICIENT_STOCK");
+          }
+
+          const requestedArtworkId = product.customerArtworkEnabled
+            ? artworkIds.get(productKey) ??
+              latestArtworkByProduct.get(productId) ??
+              null
             : null;
-        if (artworkId) artworkAssignedToProduct.add(productId);
+          if (requestedArtworkId) {
+            const artwork = artworkMap.get(requestedArtworkId);
+            if (!artwork || artwork.productId !== product.id) {
+              throw new Error("INVALID_ARTWORK");
+            }
+          }
+          artworkId =
+            requestedArtworkId && !artworkAssignedToProduct.has(productId)
+              ? requestedArtworkId
+              : null;
+          if (artworkId) artworkAssignedToProduct.add(productId);
+          productName = product.name;
+          productSlug = product.slug;
+          productImage = product.image;
+          sku = product.sku;
+          databasePrice = Number(product.discountPrice ?? product.price);
+        }
 
         // Use the database price, never a price sent by the browser.
-        const databasePrice =
-          product.discountPrice ?? product.price;
         const unitPriceCents = Math.round(
           Number(databasePrice) * 100
         );
@@ -420,17 +562,21 @@ export async function POST(request: Request) {
         subtotalCents += lineTotalCents;
 
         orderItems.push({
-          productId: product.id,
-          productName: product.name,
-          productSlug: product.slug,
-          productImage: product.image,
-          sku: product.sku,
+          productId: productType === "PRODUCT" ? productId : null,
+          customPrintProductId:
+            productType === "CUSTOM_PRINT" ? productId : null,
+          customPrintArtworkId,
+          productName,
+          productSlug,
+          productImage,
+          sku,
           quantity,
           unitPrice: money(unitPriceCents),
           lineTotal: money(lineTotalCents),
           artworkId,
           selectedColor,
           selectedSize,
+          productType,
         });
       }
 
@@ -541,17 +687,26 @@ export async function POST(request: Request) {
 
       // Reserve stock conditionally to prevent overselling.
       for (const item of orderItems) {
-        const updated = await tx.product.updateMany({
-          where: {
-            id: item.productId,
-            status: "ACTIVE",
-            availability: true,
-            stock: { gte: item.quantity },
-          },
-          data: {
-            stock: { decrement: item.quantity },
-          },
-        });
+        const updated =
+          item.productType === "CUSTOM_PRINT"
+            ? await tx.customPrintProduct.updateMany({
+                where: {
+                  id: item.customPrintProductId ?? "",
+                  active: true,
+                  availability: true,
+                  stock: { gte: item.quantity },
+                },
+                data: { stock: { decrement: item.quantity } },
+              })
+            : await tx.product.updateMany({
+                where: {
+                  id: item.productId ?? "",
+                  status: "ACTIVE",
+                  availability: true,
+                  stock: { gte: item.quantity },
+                },
+                data: { stock: { decrement: item.quantity } },
+              });
 
         if (updated.count !== 1) {
           throw new Error("INSUFFICIENT_STOCK");
@@ -591,17 +746,50 @@ export async function POST(request: Request) {
           paymentMethod,
           customerNote: customerNote || null,
           items: {
-            create: orderItems.map(({ artworkId, ...item }) => ({
-              ...item,
-              ...(artworkId
-                ? { artwork: { connect: { id: artworkId } } }
+            create: orderItems.map((item) => ({
+              productId: item.productId,
+              productName: item.productName,
+              productSlug: item.productSlug,
+              productImage: item.productImage,
+              sku: item.sku,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              lineTotal: item.lineTotal,
+              selectedColor: item.selectedColor,
+              selectedSize: item.selectedSize,
+              ...(item.artworkId
+                ? { artwork: { connect: { id: item.artworkId } } }
+                : {}),
+              ...(item.customPrintArtworkId
+                ? {
+                    CustomPrintArtwork: {
+                      connect: { id: item.customPrintArtworkId },
+                    },
+                  }
+                : {}),
+              ...(item.customPrintProductId
+                ? {
+                    CustomPrintProduct: {
+                      connect: { id: item.customPrintProductId },
+                    },
+                  }
                 : {}),
             })),
           },
           notification: { create: {} },
         },
         include: {
-          items: true,
+          items: {
+            include: {
+              CustomPrintArtwork: {
+                select: {
+                  id: true,
+                  fileName: true,
+                  designConfiguration: true,
+                },
+              },
+            },
+          },
         },
       });
     });
@@ -692,6 +880,16 @@ export async function POST(request: Request) {
           {
             success: false,
             message: "A selected color or size is no longer available. Update your cart.",
+          },
+          { status: 400 }
+        );
+      }
+      if (error.message === "INVALID_CUSTOM_PRINT_ARTWORK") {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "Your saved design is unavailable or already attached to an order. Save it again before checkout.",
           },
           { status: 400 }
         );

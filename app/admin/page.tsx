@@ -225,6 +225,30 @@ export default async function AdminDashboard({
           </Link>
 
           <Link
+            href="/admin/custom-print"
+            className="admin-nav-link"
+          >
+            <span>✦</span>
+            <strong>Custom Print</strong>
+          </Link>
+
+          <Link
+            href="/admin/custom-print/models"
+            className="admin-nav-link"
+          >
+            <span>◇</span>
+            <strong>3D Model Library</strong>
+          </Link>
+
+          <Link
+            href="/admin/custom-print/products/new"
+            className="admin-nav-link"
+          >
+            <span>＋</span>
+            <strong>New Custom Product</strong>
+          </Link>
+
+          <Link
             href="/admin/orders"
             className="admin-nav-link"
           >

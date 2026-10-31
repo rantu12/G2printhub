@@ -2,16 +2,18 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import {
-  artworkBucket,
-  getSupabaseArtwork,
-} from "@/lib/supabase-artwork";
+  readPrivateArtwork,
+  removePrivateArtwork,
+} from "@/lib/local-private-artwork";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
-type RouteContext = {
-  params: Promise<{ id: string }>;
-};
+type RouteContext = { params: Promise<{ id: string }> };
+
+function isSafeStorageKey(value: string) {
+  return /^[0-9a-f-]{36}\.(jpg|pdf)$/.test(value);
+}
 
 export async function GET(request: Request, { params }: RouteContext) {
   try {
@@ -25,7 +27,6 @@ export async function GET(request: Request, { params }: RouteContext) {
     }
 
     const { id } = await params;
-
     const artwork = await prisma.customerArtwork.findUnique({
       where: { id },
       select: {
@@ -43,37 +44,44 @@ export async function GET(request: Request, { params }: RouteContext) {
       );
     }
 
-    if (!artwork.storageKey || !artwork.contentType || !artwork.fileName) {
+    if (
+      !artwork.storageKey ||
+      !artwork.fileName ||
+      !artwork.contentType ||
+      !isSafeStorageKey(artwork.storageKey) ||
+      !["image/jpeg", "application/pdf"].includes(artwork.contentType)
+    ) {
       return NextResponse.json(
-        { success: false, message: "No file is attached to this customization." },
+        { success: false, message: "Artwork file is unavailable." },
         { status: 404 }
       );
     }
 
-    if (!/^[0-9a-f-]+\.(jpg|pdf)$/.test(artwork.storageKey)) {
+    const extension = artwork.storageKey.endsWith(".pdf") ? "pdf" : "jpg";
+    if (
+      (extension === "pdf" && artwork.contentType !== "application/pdf") ||
+      (extension === "jpg" && artwork.contentType !== "image/jpeg")
+    ) {
       return NextResponse.json(
-        { success: false, message: "Invalid artwork storage key." },
+        { success: false, message: "Artwork file type is invalid." },
         { status: 400 }
       );
     }
 
-    const { data: file, error } = await getSupabaseArtwork()
-      .storage.from(artworkBucket)
-      .download(artwork.storageKey);
-
-    if (error || !file) {
-      console.error("Supabase artwork download failed:", error?.message);
+    let bytes: Buffer;
+    try {
+      bytes = await readPrivateArtwork(artwork.storageKey);
+    } catch {
       return NextResponse.json(
-        { success: false, message: "Artwork file not found." },
+        { success: false, message: "Artwork file not found in local storage." },
         { status: 404 }
       );
     }
 
-    const bytes = await file.arrayBuffer();
     const safeFileName = artwork.fileName.replace(/["\\\r\n]/g, "_");
     const inline = new URL(request.url).searchParams.get("inline") === "1";
 
-    return new Response(bytes, {
+    return new Response(new Uint8Array(bytes), {
       headers: {
         "Content-Type": artwork.contentType,
         "Content-Length": String(bytes.byteLength),
@@ -103,17 +111,13 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
     }
 
     const { id } = await params;
-
     const artwork = await prisma.customerArtwork.findFirst({
       where: {
         id,
         userId: user.id,
         orderItemId: null,
       },
-      select: {
-        id: true,
-        storageKey: true,
-      },
+      select: { id: true, storageKey: true },
     });
 
     if (!artwork) {
@@ -123,30 +127,22 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
       );
     }
 
-    if (artwork.storageKey) {
-      if (!/^[0-9a-f-]+\.(jpg|pdf)$/.test(artwork.storageKey)) {
-        return NextResponse.json(
-          { success: false, message: "Invalid artwork storage key." },
-          { status: 400 }
-        );
-      }
-
-      const { error } = await getSupabaseArtwork()
-        .storage.from(artworkBucket)
-        .remove([artwork.storageKey]);
-
-      if (error) {
-        console.error("Supabase artwork deletion failed:", error.message);
-        return NextResponse.json(
-          { success: false, message: "Unable to remove the uploaded artwork." },
-          { status: 500 }
-        );
-      }
+    if (artwork.storageKey && !isSafeStorageKey(artwork.storageKey)) {
+      return NextResponse.json(
+        { success: false, message: "Invalid artwork storage key." },
+        { status: 400 }
+      );
     }
 
-    await prisma.customerArtwork.delete({
-      where: { id: artwork.id },
-    });
+    await prisma.customerArtwork.delete({ where: { id: artwork.id } });
+
+    if (artwork.storageKey) {
+      try {
+        await removePrivateArtwork(artwork.storageKey);
+      } catch (error) {
+        console.error("Unable to remove deleted customer artwork file:", error);
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

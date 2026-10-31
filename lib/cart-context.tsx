@@ -12,6 +12,7 @@ import {
 
 export type CartProduct = {
   id: string;
+  productType?: "PRODUCT" | "CUSTOM_PRINT";
   name: string;
   title?: string | null;
   slug: string;
@@ -57,12 +58,16 @@ type CartContextType = {
     productId: string,
     quantity: number,
     selectedColor?: string | null,
-    selectedSize?: string | null
+    selectedSize?: string | null,
+    productType?: CartProduct["productType"],
+    artworkId?: string | null
   ) => void;
   removeFromCart: (
     productId: string,
     selectedColor?: string | null,
-    selectedSize?: string | null
+    selectedSize?: string | null,
+    productType?: CartProduct["productType"],
+    artworkId?: string | null
   ) => void;
   clearCart: () => void;
 };
@@ -88,6 +93,9 @@ function isCartProduct(value: unknown): value is CartProduct {
 
   return (
     typeof value.id === "string" &&
+    (value.productType === undefined ||
+      value.productType === "PRODUCT" ||
+      value.productType === "CUSTOM_PRINT") &&
     typeof value.name === "string" &&
     typeof value.slug === "string" &&
     typeof value.stock === "number" &&
@@ -196,6 +204,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const existing = current.find(
           (item) =>
             item.product.id === product.id &&
+            (item.product.productType ?? "PRODUCT") ===
+              (selectedProduct.productType ?? "PRODUCT") &&
+            ((selectedProduct.productType ?? "PRODUCT") !== "CUSTOM_PRINT" ||
+              item.artwork?.id === artwork?.id) &&
             (item.product.selectedColor ?? null) ===
               (selectedColor ?? null) &&
             (item.product.selectedSize ?? null) === (selectedSize ?? null)
@@ -216,6 +228,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
           return current.map((item) =>
             item.product.id === product.id &&
+            (item.product.productType ?? "PRODUCT") ===
+              (selectedProduct.productType ?? "PRODUCT") &&
+            ((selectedProduct.productType ?? "PRODUCT") !== "CUSTOM_PRINT" ||
+              item.artwork?.id === artwork?.id) &&
             (item.product.selectedColor ?? null) ===
               (selectedColor ?? null) &&
             (item.product.selectedSize ?? null) === (selectedSize ?? null)
@@ -263,7 +279,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       productId: string,
       quantity: number,
       selectedColor: string | null = null,
-      selectedSize: string | null = null
+      selectedSize: string | null = null,
+      productType: CartProduct["productType"] = "PRODUCT",
+      artworkId?: string | null
     ) => {
       if (!Number.isInteger(quantity) || quantity < 1) return;
 
@@ -271,6 +289,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         current
           .map((item) =>
             item.product.id === productId &&
+            (item.product.productType ?? "PRODUCT") === productType &&
+            (artworkId === undefined || item.artwork?.id === artworkId) &&
             (item.product.selectedColor ?? null) === selectedColor &&
             (item.product.selectedSize ?? null) === selectedSize
               ? {
@@ -289,14 +309,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
     (
       productId: string,
       selectedColor: string | null = null,
-      selectedSize: string | null = null
+      selectedSize: string | null = null,
+      productType: CartProduct["productType"] = "PRODUCT",
+      artworkId?: string | null
     ) => {
       setItems((current) =>
         current.filter(
           (item) =>
             item.product.id !== productId ||
+            (item.product.productType ?? "PRODUCT") !==
+              productType ||
             (item.product.selectedColor ?? null) !== selectedColor ||
-            (item.product.selectedSize ?? null) !== selectedSize
+            (item.product.selectedSize ?? null) !== selectedSize ||
+            (artworkId !== undefined && item.artwork?.id !== artworkId)
         )
       );
     },

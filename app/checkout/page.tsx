@@ -18,6 +18,7 @@ import {
 } from "@/lib/india-states";
 import { calculateOrderCharges } from "@/lib/order-pricing";
 import { isCodAvailableForAmount } from "@/lib/cod-availability";
+import { getCustomPrintArtworkDownloads } from "@/lib/custom-print-artwork-downloads";
 
 type CheckoutForm = {
   customerName: string;
@@ -36,6 +37,14 @@ type OrderResult = {
   orderNumber: string;
   total: string;
   paymentMethod: string;
+  items?: {
+    productName: string;
+    CustomPrintArtwork: {
+      id: string;
+      fileName: string | null;
+      designConfiguration: unknown;
+    } | null;
+  }[];
 };
 
 type PaymentMethod = "COD" | "CASHFREE";
@@ -199,10 +208,27 @@ export default function CheckoutPage() {
   const [pricingError, setPricingError] = useState("");
 
   const checkoutProductIds = useMemo(
-    () => [...new Set(items.map(({ product }) => product.id))],
+    () =>
+      [...new Set(
+        items
+          .filter(({ product }) => product.productType !== "CUSTOM_PRINT")
+          .map(({ product }) => product.id)
+      )],
     [items]
   );
-  const checkoutProductKey = checkoutProductIds.join(",");
+  const checkoutCustomPrintProductIds = useMemo(
+    () =>
+      [...new Set(
+        items
+          .filter(({ product }) => product.productType === "CUSTOM_PRINT")
+          .map(({ product }) => product.id)
+      )],
+    [items]
+  );
+  const checkoutProductKey = [
+    ...checkoutProductIds.map((id) => `product:${id}`),
+    ...checkoutCustomPrintProductIds.map((id) => `custom:${id}`),
+  ].join(",");
   const pricingLoaded = pricingProductKey === checkoutProductKey;
 
   const subtotalCents = Math.round(Number(subtotal) * 100);
@@ -247,6 +273,9 @@ export default function CheckoutPage() {
     for (const productId of checkoutProductIds) {
       params.append("productId", productId);
     }
+    for (const productId of checkoutCustomPrintProductIds) {
+      params.append("customPrintProductId", productId);
+    }
     fetch(`/api/checkout/pricing?${params.toString()}`, { cache: "no-store" })
       .then(async (response) => {
         const data = await response.json();
@@ -274,7 +303,12 @@ export default function CheckoutPage() {
     return () => {
       active = false;
     };
-  }, [checkoutProductIds, checkoutProductKey, ready]);
+  }, [
+    checkoutCustomPrintProductIds,
+    checkoutProductIds,
+    checkoutProductKey,
+    ready,
+  ]);
 
   const cashfreeAvailable =
     checkoutPricing.cashfreeEnabled && checkoutPricing.cashfreeConfigured;
@@ -489,6 +523,9 @@ export default function CheckoutPage() {
           items: items.map(({ product, quantity, artwork }) => ({
             productId: product.id,
             quantity,
+            ...(product.productType === "CUSTOM_PRINT"
+              ? { productType: "CUSTOM_PRINT" }
+              : {}),
             ...(product.selectedColor
               ? { selectedColor: product.selectedColor }
               : {}),
@@ -513,6 +550,9 @@ export default function CheckoutPage() {
           const params = new URLSearchParams();
           for (const productId of checkoutProductIds) {
             params.append("productId", productId);
+          }
+          for (const productId of checkoutCustomPrintProductIds) {
+            params.append("customPrintProductId", productId);
           }
           fetch(`/api/checkout/pricing?${params.toString()}`, { cache: "no-store" })
             .then(async (res) => {
@@ -541,6 +581,7 @@ export default function CheckoutPage() {
         orderNumber: data.order.orderNumber,
         total: data.order.total,
         paymentMethod: data.order.paymentMethod,
+        items: data.order.items,
       });
 
       clearCart();
@@ -637,6 +678,52 @@ export default function CheckoutPage() {
                 : "Cashfree Payments"}
             </p>
           </div>
+
+          {order.items?.some((item) => item.CustomPrintArtwork) && (
+            <section className="mt-5 space-y-3 text-left">
+              <h2 className="font-semibold">Your finished print designs</h2>
+              {order.items.map((item) =>
+                item.CustomPrintArtwork ? (
+                  <div
+                    key={item.CustomPrintArtwork.id}
+                    className="space-y-2"
+                  >
+                    <a
+                      href={`/api/customer/custom-print-artwork/${encodeURIComponent(item.CustomPrintArtwork.id)}`}
+                      className="block rounded-lg border px-4 py-3 text-sm font-medium text-indigo-700 hover:bg-indigo-50"
+                    >
+                      Download finished design: {item.CustomPrintArtwork.fileName || item.productName}
+                    </a>
+                    {(() => {
+                      const downloads = getCustomPrintArtworkDownloads(
+                        item.CustomPrintArtwork.designConfiguration
+                      );
+                      return (
+                        <>
+                          {downloads.original && (
+                            <a
+                              href={`/api/customer/custom-print-artwork/${encodeURIComponent(item.CustomPrintArtwork.id)}?file=original`}
+                              className="block rounded-lg border px-4 py-3 text-sm font-medium text-indigo-700 hover:bg-indigo-50"
+                            >
+                              Download original image: {downloads.original.fileName}
+                            </a>
+                          )}
+                          {downloads.model && (
+                            <a
+                              href={`/api/customer/custom-print-artwork/${encodeURIComponent(item.CustomPrintArtwork.id)}?file=model`}
+                              className="block rounded-lg border px-4 py-3 text-sm font-medium text-indigo-700 hover:bg-indigo-50"
+                            >
+                              Download 3D model (GLB): {downloads.model.fileName}
+                            </a>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                ) : null
+              )}
+            </section>
+          )}
 
           <Link href="/" style={primaryLinkStyle}>
             Browse more products

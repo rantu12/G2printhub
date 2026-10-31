@@ -25,6 +25,7 @@ model User {
   orders                 Order[]
   deliveryInformation    DeliveryInformation?
   artworks               CustomerArtwork[]
+  customPrintArtworks    CustomPrintArtwork[]
   reviews                ProductReview[]
   supportTickets         SupportTicket[]
   supportTicketReplies   SupportTicketReply[]
@@ -203,6 +204,104 @@ model Product {
   @@index([createdAt])
 }
 
+model CustomPrintCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  image       String?
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products CustomPrintProduct[]
+
+  @@index([active, sortOrder])
+}
+
+model CustomPrintModel {
+  id        String   @id @default(cuid())
+  name      String
+  modelType String
+  modelUrl  String
+  printAreas Json?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products CustomPrintProduct[]
+
+  @@index([active, modelType])
+}
+
+model CustomPrintProduct {
+  id                    String                         @id @default(cuid())
+  modelId               String?
+  name                  String
+  slug                  String                         @unique
+  sku                   String                         @unique
+  description           String?
+  image                 String?
+  images                String[]                       @default([])
+  colors                String[]                       @default([])
+  sizes                 String[]                       @default([])
+  options               Json?
+  printAreas            Json?
+  customizationSettings Json?
+  price                 Decimal                        @db.Decimal(10, 2)
+  salePrice             Decimal?                       @db.Decimal(10, 2)
+  stock                 Int                            @default(0)
+  availability          Boolean                        @default(true)
+  active                Boolean                        @default(true)
+  sortOrder             Int                            @default(0)
+  categoryId            String
+  category              CustomPrintCategory            @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  model                 CustomPrintModel?               @relation(fields: [modelId], references: [id], onDelete: SetNull)
+  orderItems            OrderItem[]
+  angleImages           CustomPrintProductAngleImage[]
+  artworks              CustomPrintArtwork[]
+  createdAt             DateTime                       @default(now())
+  updatedAt             DateTime                       @updatedAt
+
+  @@index([categoryId, active, sortOrder])
+  @@index([active, availability])
+  @@index([createdAt])
+}
+
+model CustomPrintProductAngleImage {
+  id        String   @id @default(cuid())
+  productId String
+  url       String
+  label     String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  product CustomPrintProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, sortOrder])
+}
+
+model CustomPrintArtwork {
+  id                  String   @id @default(cuid())
+  userId              String
+  productId           String
+  fileName            String?
+  contentType         String?
+  fileSize            Int?
+  storageKey          String?  @unique
+  designConfiguration Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+  product    CustomPrintProduct @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([userId, createdAt])
+  @@index([productId])
+}
+
 model ProductReview {
   id        String   @id @default(cuid())
   userId    String
@@ -246,6 +345,8 @@ model Order {
   customerName  String
   customerEmail String
   customerPhone String
+  idempotencyKey   String?
+paymentSessionId String?
 
   shippingAddress  String
   shippingAddress2 String?
@@ -308,6 +409,14 @@ model OrderItem {
   sku          String?
   selectedColor String?
   selectedSize  String?
+  idempotencyKey   String?
+  paymentSessionId String?
+  customPrintArtworkId String?
+customPrintProductId String?
+customPrintSnapshot  Json?
+
+CustomPrintArtwork CustomPrintArtwork? @relation(fields: [customPrintArtworkId], references: [id])
+CustomPrintProduct CustomPrintProduct? @relation(fields: [customPrintProductId], references: [id])
 
   quantity  Int
   unitPrice Decimal @db.Decimal(10, 2)
@@ -356,7 +465,7 @@ model SupportTicket {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  user    User                ? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user    User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
   replies SupportTicketReply[]
 
   @@index([userId, createdAt])

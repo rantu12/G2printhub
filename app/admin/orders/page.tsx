@@ -10,6 +10,7 @@ import DeleteOrderControl from "./delete-order-control";
 import OrderStatusControl from "./order-status-control";
 import PaymentStatusControl from "./payment-status-control";
 import TrackingNumberControl from "./tracking-number-control";
+import { getCustomPrintArtworkDownloads } from "@/lib/custom-print-artwork-downloads";
 
 function formatPrice(value: number) {
   return `₹${value.toFixed(2)}`;
@@ -144,7 +145,25 @@ export default async function AdminOrdersPage({
               pdfPasswordEncrypted: true,
             },
           },
+          CustomPrintArtwork: {
+            select: {
+              id: true,
+              fileName: true,
+              contentType: true,
+              designConfiguration: true,
+            },
+          },
           product: {
+            select: {
+              image: true,
+              category: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+          CustomPrintProduct: {
             select: {
               image: true,
               category: {
@@ -614,10 +633,17 @@ export default async function AdminOrdersPage({
                         key={`${order.id}-${item.sku ?? item.productName}-${index}`}
                       >
                         <div className="admin-order-item-image">
-                          {(item.product?.image ?? item.productImage) ? (
+                          {(item.product?.image ??
+                            item.CustomPrintProduct?.image ??
+                            item.productImage) ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
-                              src={item.product?.image ?? item.productImage ?? ""}
+                              src={
+                                item.product?.image ??
+                                item.CustomPrintProduct?.image ??
+                                item.productImage ??
+                                ""
+                              }
                               alt={item.productName}
                             />
                           ) : (
@@ -627,7 +653,10 @@ export default async function AdminOrdersPage({
                         <div>
                           <strong>{item.productName}</strong>
                           <small>
-                            Category: {item.product?.category.name ?? "Unavailable"}
+                            Category:
+                              {item.product?.category.name ??
+                                item.CustomPrintProduct?.category.name ??
+                                "Unavailable"}
                           </small>
                           {item.sku && <small>SKU: {item.sku}</small>}
                           {(item.selectedColor || item.selectedSize) && (
@@ -647,6 +676,62 @@ export default async function AdminOrdersPage({
                               contentType={item.artwork.contentType}
                               pdfPassword={item.artwork.pdfPassword}
                             />
+                          )}
+                          {item.CustomPrintArtwork && (
+                            <div className="mt-2 space-y-2">
+                              {item.CustomPrintArtwork.fileName &&
+                                item.CustomPrintArtwork.contentType?.startsWith("image/") && (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={`/api/customer/custom-print-artwork/${encodeURIComponent(item.CustomPrintArtwork.id)}?inline=1`}
+                                    alt={`Finished custom design for ${item.productName}`}
+                                    className="h-24 w-24 rounded-lg border object-cover"
+                                  />
+                                )}
+                              <a
+                                href={`/api/customer/custom-print-artwork/${encodeURIComponent(item.CustomPrintArtwork.id)}`}
+                                className="admin-order-artwork-link admin-order-artwork-button"
+                              >
+                                Download finished design
+                              </a>
+                              {(() => {
+                                const downloads = getCustomPrintArtworkDownloads(
+                                  item.CustomPrintArtwork.designConfiguration
+                                );
+                                return (
+                                  <>
+                                    {downloads.original && (
+                                      <a
+                                        href={`/api/customer/custom-print-artwork/${encodeURIComponent(item.CustomPrintArtwork.id)}?file=original`}
+                                        className="admin-order-artwork-link admin-order-artwork-button"
+                                      >
+                                        Download original image
+                                      </a>
+                                    )}
+                                    {downloads.model && (
+                                      <a
+                                        href={`/api/customer/custom-print-artwork/${encodeURIComponent(item.CustomPrintArtwork.id)}?file=model`}
+                                        className="admin-order-artwork-link admin-order-artwork-button"
+                                      >
+                                        Download 3D model (GLB)
+                                      </a>
+                                    )}
+                                  </>
+                                );
+                              })()}
+                              {item.CustomPrintArtwork.designConfiguration &&
+                                typeof item.CustomPrintArtwork.designConfiguration === "object" &&
+                                !Array.isArray(item.CustomPrintArtwork.designConfiguration) &&
+                                "printArea" in item.CustomPrintArtwork.designConfiguration &&
+                                item.CustomPrintArtwork.designConfiguration.printArea &&
+                                typeof item.CustomPrintArtwork.designConfiguration.printArea === "object" &&
+                                "name" in item.CustomPrintArtwork.designConfiguration.printArea &&
+                                typeof item.CustomPrintArtwork.designConfiguration.printArea.name === "string" && (
+                                  <small>
+                                    Print area: {item.CustomPrintArtwork.designConfiguration.printArea.name}
+                                  </small>
+                                )}
+                            </div>
                           )}
                         </div>
                         <strong>{formatPrice(Number(item.lineTotal))}</strong>

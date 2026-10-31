@@ -72,7 +72,7 @@ export default function CartPage() {
 
               return (
                 <article
-                  key={`${product.id}:${product.selectedColor ?? "default"}:${product.selectedSize ?? "default"}`}
+                  key={`${product.productType ?? "PRODUCT"}:${product.id}:${product.selectedColor ?? "default"}:${product.selectedSize ?? "default"}:${artwork?.id ?? "no-artwork"}`}
                   className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center"
                 >
                   <div className="flex h-28 w-full shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gray-100 sm:w-28">
@@ -90,7 +90,11 @@ export default function CartPage() {
 
                   <div className="min-w-0 flex-1">
                     <Link
-                      href={`/products/${product.slug}`}
+                      href={
+                        product.productType === "CUSTOM_PRINT"
+                          ? `/custom-print/${product.slug}`
+                          : `/products/${product.slug}`
+                      }
                       className="text-lg font-semibold text-gray-900 hover:text-indigo-600"
                     >
                       {product.name}
@@ -134,7 +138,9 @@ export default function CartPage() {
                             product.id,
                             quantity - 1,
                             product.selectedColor ?? null,
-                            product.selectedSize ?? null
+                            product.selectedSize ?? null,
+                            product.productType ?? "PRODUCT",
+                            artwork?.id
                           )
                         }
                         disabled={quantity <= 1}
@@ -155,7 +161,9 @@ export default function CartPage() {
                             product.id,
                             quantity + 1,
                             product.selectedColor ?? null,
-                            product.selectedSize ?? null
+                            product.selectedSize ?? null,
+                            product.productType ?? "PRODUCT",
+                            artwork?.id
                           )
                         }
                         disabled={quantity >= 99 || quantity >= product.stock}
@@ -172,7 +180,9 @@ export default function CartPage() {
                         removeFromCart(
                           product.id,
                           product.selectedColor ?? null,
-                          product.selectedSize ?? null
+                          product.selectedSize ?? null,
+                          product.productType ?? "PRODUCT",
+                          artwork?.id
                         )
                       }
                       className="text-sm font-medium text-red-600 hover:text-red-800"

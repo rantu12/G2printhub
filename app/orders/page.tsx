@@ -3,6 +3,7 @@ import { getStoreSettings } from "@/lib/store-settings";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getCustomPrintArtworkDownloads } from "@/lib/custom-print-artwork-downloads";
 
 function formatPrice(value: number) {
   return `₹${value.toFixed(2)}`;
@@ -55,6 +56,14 @@ export default async function OrdersPage() {
             select: {
               id: true,
               fileName: true,
+            },
+          },
+          CustomPrintArtwork: {
+            select: {
+              id: true,
+              fileName: true,
+              contentType: true,
+              designConfiguration: true,
             },
           },
         },
@@ -153,6 +162,41 @@ export default async function OrdersPage() {
                           >
                             Print file: {item.artwork.fileName}
                           </a>
+                        )}
+                        {item.CustomPrintArtwork?.fileName && (
+                          <>
+                            <a
+                              href={`/api/customer/custom-print-artwork/${encodeURIComponent(item.CustomPrintArtwork.id)}`}
+                              className="account-order-artwork-link"
+                            >
+                              Download finished design: {item.CustomPrintArtwork.fileName}
+                            </a>
+                            {(() => {
+                              const downloads = getCustomPrintArtworkDownloads(
+                                item.CustomPrintArtwork.designConfiguration
+                              );
+                              return (
+                                <>
+                                  {downloads.original && (
+                                    <a
+                                      href={`/api/customer/custom-print-artwork/${encodeURIComponent(item.CustomPrintArtwork.id)}?file=original`}
+                                      className="account-order-artwork-link"
+                                    >
+                                      Download original image: {downloads.original.fileName}
+                                    </a>
+                                  )}
+                                  {downloads.model && (
+                                    <a
+                                      href={`/api/customer/custom-print-artwork/${encodeURIComponent(item.CustomPrintArtwork.id)}?file=model`}
+                                      className="account-order-artwork-link"
+                                    >
+                                      Download 3D model (GLB): {downloads.model.fileName}
+                                    </a>
+                                  )}
+                                </>
+                              );
+                            })()}
+                          </>
                         )}
                       </div>
                       <strong>{formatPrice(Number(item.lineTotal))}</strong>

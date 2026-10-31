@@ -1,0 +1,461 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id              String    @id @default(cuid())
+  name            String
+  email           String    @unique
+  phone           String?
+  passwordHash    String?
+  role            String    @default("CUSTOMER")
+  isBlocked       Boolean   @default(false)
+  emailVerifiedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  sessions               Session[]
+  emailVerificationToken EmailVerificationToken?
+  oauthAccounts          OAuthAccount[]
+  orders                 Order[]
+  deliveryInformation    DeliveryInformation?
+  artworks               CustomerArtwork[]
+  customPrintArtworks    CustomPrintArtwork[]
+  reviews                ProductReview[]
+  supportTickets         SupportTicket[]
+  supportTicketReplies   SupportTicketReply[]
+}
+
+model DeliveryInformation {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  customerName     String
+  customerEmail    String
+  customerPhone    String
+  shippingAddress  String
+  shippingAddress2 String?
+  city             String
+  state            String?
+  postalCode       String
+  country          String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model FooterMenuItem {
+  id        String   @id @default(cuid())
+  label     String
+  href      String
+  isActive  Boolean  @default(true)
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, position])
+}
+
+model StoreSettings {
+  id                  String   @id @default("default")
+  shippingFee         Decimal  @default(0) @db.Decimal(10, 2)
+  taxRate             Decimal  @default(0) @db.Decimal(5, 2)
+  codEnabled          Boolean  @default(true)
+  codMinimumAmount    Decimal  @default(0) @db.Decimal(10, 2)
+  codMaximumAmount    Decimal? @db.Decimal(10, 2)
+  codFee              Decimal  @default(0) @db.Decimal(10, 2)
+  cashfreeEnabled     Boolean  @default(false)
+  siteName            String   @default("PrintHub")
+  siteLogo            String   @default("")
+  siteFavicon         String   @default("")
+  storeAddress        String   @default("")
+  supportEmail        String   @default("")
+  supportPhone        String   @default("")
+  currency            String   @default("INR")
+  timeZone            String   @default("Asia/Kolkata")
+  defaultOrderStatus  String   @default("PENDING")
+  websiteUrl          String   @default("")
+  maintenanceMode     Boolean  @default(false)
+  registrationEnabled Boolean  @default(true)
+  passwordLoginEnabled Boolean @default(true)
+  googleSignInEnabled Boolean  @default(true)
+  emailVerificationRequired Boolean?
+  homepageEyebrow     String   @default("THE PRINT SHOP")
+  homepageTitle       String   @default("Find your next favourite print.")
+  homepageDescription String   @default("Custom cards, T-shirts, mugs and more. Explore our collection and make every print personal.")
+  homepageSaleEnabled Boolean  @default(true)
+  homepageOffer       String   @default("")
+  homepageImage       String   @default("")
+  updatedAt           DateTime @updatedAt
+}
+
+model IntegrationSecret {
+  key             String   @id
+  encryptedValue  String
+  updatedAt       DateTime @updatedAt
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(cuid())
+  userId    String    @unique
+  tokenHash String    @unique
+  expiresAt DateTime
+  sentAt    DateTime  @default(now())
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+}
+
+model OAuthAccount {
+  id                String   @id @default(cuid())
+  provider          String
+  providerAccountId String
+  userId            String
+  createdAt         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model AuthRateLimit {
+  keyHash         String   @id
+  count           Int
+  windowStartedAt DateTime
+}
+
+model Coupon {
+  id              String    @id @default(cuid())
+  code            String    @unique
+  discountType    String
+  value           Decimal   @db.Decimal(10, 2)
+  minimumSubtotal Decimal   @default(0) @db.Decimal(10, 2)
+  maximumDiscount Decimal?  @db.Decimal(10, 2)
+  usageLimit      Int?
+  usageCount      Int       @default(0)
+  startsAt        DateTime?
+  endsAt          DateTime?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  orders Order[]
+
+  @@index([isActive, startsAt, endsAt])
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  image       String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+
+  @@index([active])
+}
+
+model Product {
+  id                     String   @id @default(cuid())
+  name                   String
+  title                  String?
+  slug                   String   @unique
+  sku                    String   @unique
+  description            String?
+  image                  String?
+  images                 String[] @default([])
+  colors                 String[] @default([])
+  sizes                  String[] @default([])
+  price                  Decimal  @db.Decimal(10, 2)
+  discountPrice          Decimal? @db.Decimal(10, 2)
+  stock                  Int      @default(0)
+  availability           Boolean  @default(true)
+  codEnabled             Boolean  @default(true)
+  customerArtworkEnabled Boolean  @default(true)
+  status                 String   @default("ACTIVE")
+  featured               Boolean  @default(false)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  orderItems OrderItem[]
+  artworks   CustomerArtwork[]
+  reviews    ProductReview[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([status])
+  @@index([featured])
+  @@index([createdAt])
+}
+
+model CustomPrintCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  image       String?
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products CustomPrintProduct[]
+
+  @@index([active, sortOrder])
+}
+
+model CustomPrintProduct {
+  id                    String                         @id @default(cuid())
+  name                  String
+  slug                  String                         @unique
+  sku                   String                         @unique
+  description           String?
+  image                 String?
+  images                String[]                       @default([])
+  colors                String[]                       @default([])
+  sizes                 String[]                       @default([])
+  options               Json?
+  printAreas            Json?
+  customizationSettings Json?
+  price                 Decimal                        @db.Decimal(10, 2)
+  salePrice             Decimal?                       @db.Decimal(10, 2)
+  stock                 Int                            @default(0)
+  availability          Boolean                        @default(true)
+  active                Boolean                        @default(true)
+  sortOrder             Int                            @default(0)
+  categoryId            String
+  category              CustomPrintCategory            @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  angleImages           CustomPrintProductAngleImage[]
+  artworks              CustomPrintArtwork[]
+  createdAt             DateTime                       @default(now())
+  updatedAt             DateTime                       @updatedAt
+
+  @@index([categoryId, active, sortOrder])
+  @@index([active, availability])
+  @@index([createdAt])
+}
+
+model CustomPrintProductAngleImage {
+  id        String   @id @default(cuid())
+  productId String
+  url       String
+  label     String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  product CustomPrintProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, sortOrder])
+}
+
+model CustomPrintArtwork {
+  id                  String   @id @default(cuid())
+  userId              String
+  productId           String
+  fileName            String?
+  contentType         String?
+  fileSize            Int?
+  storageKey          String?  @unique
+  designConfiguration Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product CustomPrintProduct @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([userId, createdAt])
+  @@index([productId])
+}
+
+model ProductReview {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  name      String
+  email     String
+  rating    Int
+  comment   String
+  images    String[] @default([])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([productId, createdAt])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Order {
+  id          String @id @default(cuid())
+  orderNumber String @unique
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  customerName  String
+  customerEmail String
+  customerPhone String
+
+  shippingAddress  String
+  shippingAddress2 String?
+  city             String
+  state            String?
+  postalCode       String
+  country          String
+
+  subtotal    Decimal @db.Decimal(10, 2)
+  shippingFee Decimal @default(0) @db.Decimal(10, 2)
+  codFee      Decimal @default(0) @db.Decimal(10, 2)
+  tax         Decimal @default(0) @db.Decimal(10, 2)
+  total       Decimal @db.Decimal(10, 2)
+  couponId    String?
+  couponCode  String?
+  discount    Decimal @default(0) @db.Decimal(10, 2)
+
+  status             String  @default("PENDING")
+  paymentStatus      String  @default("UNPAID")
+  paymentMethod      String  @default("COD")
+  trackingNumber     String?
+  courierPartnerName String?
+  customerNote       String?
+
+  items  OrderItem[]
+  coupon Coupon?     @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  notification AdminNotification?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model AdminNotification {
+  id        String    @id @default(cuid())
+  orderId   String    @unique
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([readAt, createdAt])
+}
+
+model OrderItem {
+  id String @id @default(cuid())
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  productName  String
+  productSlug  String
+  productImage String?
+  sku          String?
+  selectedColor String?
+  selectedSize  String?
+
+  quantity  Int
+  unitPrice Decimal @db.Decimal(10, 2)
+  lineTotal Decimal @db.Decimal(10, 2)
+
+  artwork CustomerArtwork?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model CustomerArtwork {
+  id                   String   @id @default(cuid())
+  userId               String
+  productId            String
+  fileName             String?
+  contentType          String?
+  fileSize             Int?
+  storageKey           String?  @unique
+  pdfPasswordEncrypted String?
+  orderItemId          String?  @unique
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product    @relation(fields: [productId], references: [id], onDelete: Restrict)
+  orderItem OrderItem? @relation(fields: [orderItemId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([productId])
+}
+
+model SupportTicket {
+  id           String   @id @default(cuid())
+  ticketNumber String   @unique
+  userId       String?
+  name         String
+  email        String
+  orderId      String?
+  subject      String
+  message      String
+  status       String   @default("OPEN")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user    User                ? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  replies SupportTicketReply[]
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([email, createdAt])
+}
+
+model SupportTicketReply {
+  id         String   @id @default(cuid())
+  ticketId   String
+  userId     String?
+  authorName String
+  authorRole String
+  message    String
+  createdAt  DateTime @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user   User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId, createdAt])
+  @@index([userId, createdAt])
+}

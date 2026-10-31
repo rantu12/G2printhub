@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 type LoginFormProps = {
   accountType: "customer" | "admin";
+  returnTo?: string;
   initialError?: string;
   passwordLoginEnabled?: boolean;
   googleSignInEnabled?: boolean;
@@ -14,6 +15,7 @@ type LoginFormProps = {
 
 export default function LoginForm({
   accountType,
+  returnTo,
   initialError = "",
   passwordLoginEnabled = true,
   googleSignInEnabled = true,
@@ -61,7 +63,9 @@ export default function LoginForm({
       }
 
       const destination =
-        data.user?.role === "ADMIN" || isAdmin ? "/admin" : "/account";
+        data.user?.role === "ADMIN" || isAdmin
+          ? returnTo ?? "/admin"
+          : "/account";
       router.push(destination);
       router.refresh();
     } catch {
