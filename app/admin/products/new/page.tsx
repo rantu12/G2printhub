@@ -1,5 +1,4 @@
 "use client";
-import type { CustomPrintArea } from "@/components/custom-print/print-area-types";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
