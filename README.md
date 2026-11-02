@@ -1,6 +1,6 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## PrintHub authentication and store setup
+## G2 PrintHub authentication and store setup
 
 Copy `.env.example` to `.env` only if you do not already have an `.env` file.
 Keep `.env` private and never commit or share its credentials.
@@ -8,6 +8,7 @@ Keep `.env` private and never commit or share its credentials.
 Required server-side environment variables:
 
 - `DATABASE_URL`: PostgreSQL connection string.
+- `BLOB_READ_WRITE_TOKEN`: Vercel Blob token required for Admin image uploads, including the site logo.
 - `RESEND_API_KEY`: Resend API key used only to send verification messages.
 - `EMAIL_FROM`: sender address configured and verified with Resend.
 - `APP_URL`: the canonical site origin, such as `http://localhost:3000` locally.
@@ -69,6 +70,10 @@ Apply the additive, data-preserving migration to the configured database with
 `npx prisma generate`. The migration marks existing accounts verified to
 preserve their current sign-in access; newly registered password accounts
 must verify their email. Do not run database reset commands.
+
+The site identity settings include an optional WhatsApp contact number. Set it
+under Admin → Settings → Site identity (include the country code) to show the
+floating storefront chat button.
 
 Create or promote the explicitly authorized admin account by setting
 `ADMIN_EMAIL`, `ADMIN_PASSWORD` (at least 12 characters), and optionally

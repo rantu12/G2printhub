@@ -57,6 +57,7 @@ export type StoreSettingsMinAggregateOutputType = {
   storeAddress: string | null
   supportEmail: string | null
   supportPhone: string | null
+  whatsappNumber: string | null
   currency: string | null
   timeZone: string | null
   defaultOrderStatus: string | null
@@ -72,6 +73,14 @@ export type StoreSettingsMinAggregateOutputType = {
   homepageSaleEnabled: boolean | null
   homepageOffer: string | null
   homepageImage: string | null
+  invoiceTitle: string | null
+  invoiceTagline: string | null
+  invoiceSellerName: string | null
+  invoiceGstin: string | null
+  invoicePan: string | null
+  invoiceAddress: string | null
+  invoiceContact: string | null
+  invoiceReturnPolicy: string | null
   updatedAt: Date | null
 }
 
@@ -90,6 +99,7 @@ export type StoreSettingsMaxAggregateOutputType = {
   storeAddress: string | null
   supportEmail: string | null
   supportPhone: string | null
+  whatsappNumber: string | null
   currency: string | null
   timeZone: string | null
   defaultOrderStatus: string | null
@@ -105,6 +115,14 @@ export type StoreSettingsMaxAggregateOutputType = {
   homepageSaleEnabled: boolean | null
   homepageOffer: string | null
   homepageImage: string | null
+  invoiceTitle: string | null
+  invoiceTagline: string | null
+  invoiceSellerName: string | null
+  invoiceGstin: string | null
+  invoicePan: string | null
+  invoiceAddress: string | null
+  invoiceContact: string | null
+  invoiceReturnPolicy: string | null
   updatedAt: Date | null
 }
 
@@ -123,6 +141,7 @@ export type StoreSettingsCountAggregateOutputType = {
   storeAddress: number
   supportEmail: number
   supportPhone: number
+  whatsappNumber: number
   currency: number
   timeZone: number
   defaultOrderStatus: number
@@ -138,6 +157,14 @@ export type StoreSettingsCountAggregateOutputType = {
   homepageSaleEnabled: number
   homepageOffer: number
   homepageImage: number
+  invoiceTitle: number
+  invoiceTagline: number
+  invoiceSellerName: number
+  invoiceGstin: number
+  invoicePan: number
+  invoiceAddress: number
+  invoiceContact: number
+  invoiceReturnPolicy: number
   updatedAt: number
   _all: number
 }
@@ -174,6 +201,7 @@ export type StoreSettingsMinAggregateInputType = {
   storeAddress?: true
   supportEmail?: true
   supportPhone?: true
+  whatsappNumber?: true
   currency?: true
   timeZone?: true
   defaultOrderStatus?: true
@@ -189,6 +217,14 @@ export type StoreSettingsMinAggregateInputType = {
   homepageSaleEnabled?: true
   homepageOffer?: true
   homepageImage?: true
+  invoiceTitle?: true
+  invoiceTagline?: true
+  invoiceSellerName?: true
+  invoiceGstin?: true
+  invoicePan?: true
+  invoiceAddress?: true
+  invoiceContact?: true
+  invoiceReturnPolicy?: true
   updatedAt?: true
 }
 
@@ -207,6 +243,7 @@ export type StoreSettingsMaxAggregateInputType = {
   storeAddress?: true
   supportEmail?: true
   supportPhone?: true
+  whatsappNumber?: true
   currency?: true
   timeZone?: true
   defaultOrderStatus?: true
@@ -222,6 +259,14 @@ export type StoreSettingsMaxAggregateInputType = {
   homepageSaleEnabled?: true
   homepageOffer?: true
   homepageImage?: true
+  invoiceTitle?: true
+  invoiceTagline?: true
+  invoiceSellerName?: true
+  invoiceGstin?: true
+  invoicePan?: true
+  invoiceAddress?: true
+  invoiceContact?: true
+  invoiceReturnPolicy?: true
   updatedAt?: true
 }
 
@@ -240,6 +285,7 @@ export type StoreSettingsCountAggregateInputType = {
   storeAddress?: true
   supportEmail?: true
   supportPhone?: true
+  whatsappNumber?: true
   currency?: true
   timeZone?: true
   defaultOrderStatus?: true
@@ -255,6 +301,14 @@ export type StoreSettingsCountAggregateInputType = {
   homepageSaleEnabled?: true
   homepageOffer?: true
   homepageImage?: true
+  invoiceTitle?: true
+  invoiceTagline?: true
+  invoiceSellerName?: true
+  invoiceGstin?: true
+  invoicePan?: true
+  invoiceAddress?: true
+  invoiceContact?: true
+  invoiceReturnPolicy?: true
   updatedAt?: true
   _all?: true
 }
@@ -360,6 +414,7 @@ export type StoreSettingsGroupByOutputType = {
   storeAddress: string
   supportEmail: string
   supportPhone: string
+  whatsappNumber: string
   currency: string
   timeZone: string
   defaultOrderStatus: string
@@ -375,6 +430,14 @@ export type StoreSettingsGroupByOutputType = {
   homepageSaleEnabled: boolean
   homepageOffer: string
   homepageImage: string
+  invoiceTitle: string
+  invoiceTagline: string
+  invoiceSellerName: string
+  invoiceGstin: string
+  invoicePan: string
+  invoiceAddress: string
+  invoiceContact: string
+  invoiceReturnPolicy: string
   updatedAt: Date
   _count: StoreSettingsCountAggregateOutputType | null
   _avg: StoreSettingsAvgAggregateOutputType | null
@@ -416,6 +479,7 @@ export type StoreSettingsWhereInput = {
   storeAddress?: Prisma.StringFilter<"StoreSettings"> | string
   supportEmail?: Prisma.StringFilter<"StoreSettings"> | string
   supportPhone?: Prisma.StringFilter<"StoreSettings"> | string
+  whatsappNumber?: Prisma.StringFilter<"StoreSettings"> | string
   currency?: Prisma.StringFilter<"StoreSettings"> | string
   timeZone?: Prisma.StringFilter<"StoreSettings"> | string
   defaultOrderStatus?: Prisma.StringFilter<"StoreSettings"> | string
@@ -431,6 +495,14 @@ export type StoreSettingsWhereInput = {
   homepageSaleEnabled?: Prisma.BoolFilter<"StoreSettings"> | boolean
   homepageOffer?: Prisma.StringFilter<"StoreSettings"> | string
   homepageImage?: Prisma.StringFilter<"StoreSettings"> | string
+  invoiceTitle?: Prisma.StringFilter<"StoreSettings"> | string
+  invoiceTagline?: Prisma.StringFilter<"StoreSettings"> | string
+  invoiceSellerName?: Prisma.StringFilter<"StoreSettings"> | string
+  invoiceGstin?: Prisma.StringFilter<"StoreSettings"> | string
+  invoicePan?: Prisma.StringFilter<"StoreSettings"> | string
+  invoiceAddress?: Prisma.StringFilter<"StoreSettings"> | string
+  invoiceContact?: Prisma.StringFilter<"StoreSettings"> | string
+  invoiceReturnPolicy?: Prisma.StringFilter<"StoreSettings"> | string
   updatedAt?: Prisma.DateTimeFilter<"StoreSettings"> | Date | string
 }
 
@@ -449,6 +521,7 @@ export type StoreSettingsOrderByWithRelationInput = {
   storeAddress?: Prisma.SortOrder
   supportEmail?: Prisma.SortOrder
   supportPhone?: Prisma.SortOrder
+  whatsappNumber?: Prisma.SortOrder
   currency?: Prisma.SortOrder
   timeZone?: Prisma.SortOrder
   defaultOrderStatus?: Prisma.SortOrder
@@ -464,6 +537,14 @@ export type StoreSettingsOrderByWithRelationInput = {
   homepageSaleEnabled?: Prisma.SortOrder
   homepageOffer?: Prisma.SortOrder
   homepageImage?: Prisma.SortOrder
+  invoiceTitle?: Prisma.SortOrder
+  invoiceTagline?: Prisma.SortOrder
+  invoiceSellerName?: Prisma.SortOrder
+  invoiceGstin?: Prisma.SortOrder
+  invoicePan?: Prisma.SortOrder
+  invoiceAddress?: Prisma.SortOrder
+  invoiceContact?: Prisma.SortOrder
+  invoiceReturnPolicy?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
@@ -485,6 +566,7 @@ export type StoreSettingsWhereUniqueInput = Prisma.AtLeast<{
   storeAddress?: Prisma.StringFilter<"StoreSettings"> | string
   supportEmail?: Prisma.StringFilter<"StoreSettings"> | string
   supportPhone?: Prisma.StringFilter<"StoreSettings"> | string
+  whatsappNumber?: Prisma.StringFilter<"StoreSettings"> | string
   currency?: Prisma.StringFilter<"StoreSettings"> | string
   timeZone?: Prisma.StringFilter<"StoreSettings"> | string
   defaultOrderStatus?: Prisma.StringFilter<"StoreSettings"> | string
@@ -500,6 +582,14 @@ export type StoreSettingsWhereUniqueInput = Prisma.AtLeast<{
   homepageSaleEnabled?: Prisma.BoolFilter<"StoreSettings"> | boolean
   homepageOffer?: Prisma.StringFilter<"StoreSettings"> | string
   homepageImage?: Prisma.StringFilter<"StoreSettings"> | string
+  invoiceTitle?: Prisma.StringFilter<"StoreSettings"> | string
+  invoiceTagline?: Prisma.StringFilter<"StoreSettings"> | string
+  invoiceSellerName?: Prisma.StringFilter<"StoreSettings"> | string
+  invoiceGstin?: Prisma.StringFilter<"StoreSettings"> | string
+  invoicePan?: Prisma.StringFilter<"StoreSettings"> | string
+  invoiceAddress?: Prisma.StringFilter<"StoreSettings"> | string
+  invoiceContact?: Prisma.StringFilter<"StoreSettings"> | string
+  invoiceReturnPolicy?: Prisma.StringFilter<"StoreSettings"> | string
   updatedAt?: Prisma.DateTimeFilter<"StoreSettings"> | Date | string
 }, "id">
 
@@ -518,6 +608,7 @@ export type StoreSettingsOrderByWithAggregationInput = {
   storeAddress?: Prisma.SortOrder
   supportEmail?: Prisma.SortOrder
   supportPhone?: Prisma.SortOrder
+  whatsappNumber?: Prisma.SortOrder
   currency?: Prisma.SortOrder
   timeZone?: Prisma.SortOrder
   defaultOrderStatus?: Prisma.SortOrder
@@ -533,6 +624,14 @@ export type StoreSettingsOrderByWithAggregationInput = {
   homepageSaleEnabled?: Prisma.SortOrder
   homepageOffer?: Prisma.SortOrder
   homepageImage?: Prisma.SortOrder
+  invoiceTitle?: Prisma.SortOrder
+  invoiceTagline?: Prisma.SortOrder
+  invoiceSellerName?: Prisma.SortOrder
+  invoiceGstin?: Prisma.SortOrder
+  invoicePan?: Prisma.SortOrder
+  invoiceAddress?: Prisma.SortOrder
+  invoiceContact?: Prisma.SortOrder
+  invoiceReturnPolicy?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.StoreSettingsCountOrderByAggregateInput
   _avg?: Prisma.StoreSettingsAvgOrderByAggregateInput
@@ -559,6 +658,7 @@ export type StoreSettingsScalarWhereWithAggregatesInput = {
   storeAddress?: Prisma.StringWithAggregatesFilter<"StoreSettings"> | string
   supportEmail?: Prisma.StringWithAggregatesFilter<"StoreSettings"> | string
   supportPhone?: Prisma.StringWithAggregatesFilter<"StoreSettings"> | string
+  whatsappNumber?: Prisma.StringWithAggregatesFilter<"StoreSettings"> | string
   currency?: Prisma.StringWithAggregatesFilter<"StoreSettings"> | string
   timeZone?: Prisma.StringWithAggregatesFilter<"StoreSettings"> | string
   defaultOrderStatus?: Prisma.StringWithAggregatesFilter<"StoreSettings"> | string
@@ -574,6 +674,14 @@ export type StoreSettingsScalarWhereWithAggregatesInput = {
   homepageSaleEnabled?: Prisma.BoolWithAggregatesFilter<"StoreSettings"> | boolean
   homepageOffer?: Prisma.StringWithAggregatesFilter<"StoreSettings"> | string
   homepageImage?: Prisma.StringWithAggregatesFilter<"StoreSettings"> | string
+  invoiceTitle?: Prisma.StringWithAggregatesFilter<"StoreSettings"> | string
+  invoiceTagline?: Prisma.StringWithAggregatesFilter<"StoreSettings"> | string
+  invoiceSellerName?: Prisma.StringWithAggregatesFilter<"StoreSettings"> | string
+  invoiceGstin?: Prisma.StringWithAggregatesFilter<"StoreSettings"> | string
+  invoicePan?: Prisma.StringWithAggregatesFilter<"StoreSettings"> | string
+  invoiceAddress?: Prisma.StringWithAggregatesFilter<"StoreSettings"> | string
+  invoiceContact?: Prisma.StringWithAggregatesFilter<"StoreSettings"> | string
+  invoiceReturnPolicy?: Prisma.StringWithAggregatesFilter<"StoreSettings"> | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"StoreSettings"> | Date | string
 }
 
@@ -592,6 +700,7 @@ export type StoreSettingsCreateInput = {
   storeAddress?: string
   supportEmail?: string
   supportPhone?: string
+  whatsappNumber?: string
   currency?: string
   timeZone?: string
   defaultOrderStatus?: string
@@ -607,6 +716,14 @@ export type StoreSettingsCreateInput = {
   homepageSaleEnabled?: boolean
   homepageOffer?: string
   homepageImage?: string
+  invoiceTitle?: string
+  invoiceTagline?: string
+  invoiceSellerName?: string
+  invoiceGstin?: string
+  invoicePan?: string
+  invoiceAddress?: string
+  invoiceContact?: string
+  invoiceReturnPolicy?: string
   updatedAt?: Date | string
 }
 
@@ -625,6 +742,7 @@ export type StoreSettingsUncheckedCreateInput = {
   storeAddress?: string
   supportEmail?: string
   supportPhone?: string
+  whatsappNumber?: string
   currency?: string
   timeZone?: string
   defaultOrderStatus?: string
@@ -640,6 +758,14 @@ export type StoreSettingsUncheckedCreateInput = {
   homepageSaleEnabled?: boolean
   homepageOffer?: string
   homepageImage?: string
+  invoiceTitle?: string
+  invoiceTagline?: string
+  invoiceSellerName?: string
+  invoiceGstin?: string
+  invoicePan?: string
+  invoiceAddress?: string
+  invoiceContact?: string
+  invoiceReturnPolicy?: string
   updatedAt?: Date | string
 }
 
@@ -658,6 +784,7 @@ export type StoreSettingsUpdateInput = {
   storeAddress?: Prisma.StringFieldUpdateOperationsInput | string
   supportEmail?: Prisma.StringFieldUpdateOperationsInput | string
   supportPhone?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsappNumber?: Prisma.StringFieldUpdateOperationsInput | string
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   timeZone?: Prisma.StringFieldUpdateOperationsInput | string
   defaultOrderStatus?: Prisma.StringFieldUpdateOperationsInput | string
@@ -673,6 +800,14 @@ export type StoreSettingsUpdateInput = {
   homepageSaleEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   homepageOffer?: Prisma.StringFieldUpdateOperationsInput | string
   homepageImage?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceTitle?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceTagline?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceSellerName?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceGstin?: Prisma.StringFieldUpdateOperationsInput | string
+  invoicePan?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceContact?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceReturnPolicy?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -691,6 +826,7 @@ export type StoreSettingsUncheckedUpdateInput = {
   storeAddress?: Prisma.StringFieldUpdateOperationsInput | string
   supportEmail?: Prisma.StringFieldUpdateOperationsInput | string
   supportPhone?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsappNumber?: Prisma.StringFieldUpdateOperationsInput | string
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   timeZone?: Prisma.StringFieldUpdateOperationsInput | string
   defaultOrderStatus?: Prisma.StringFieldUpdateOperationsInput | string
@@ -706,6 +842,14 @@ export type StoreSettingsUncheckedUpdateInput = {
   homepageSaleEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   homepageOffer?: Prisma.StringFieldUpdateOperationsInput | string
   homepageImage?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceTitle?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceTagline?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceSellerName?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceGstin?: Prisma.StringFieldUpdateOperationsInput | string
+  invoicePan?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceContact?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceReturnPolicy?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -724,6 +868,7 @@ export type StoreSettingsCreateManyInput = {
   storeAddress?: string
   supportEmail?: string
   supportPhone?: string
+  whatsappNumber?: string
   currency?: string
   timeZone?: string
   defaultOrderStatus?: string
@@ -739,6 +884,14 @@ export type StoreSettingsCreateManyInput = {
   homepageSaleEnabled?: boolean
   homepageOffer?: string
   homepageImage?: string
+  invoiceTitle?: string
+  invoiceTagline?: string
+  invoiceSellerName?: string
+  invoiceGstin?: string
+  invoicePan?: string
+  invoiceAddress?: string
+  invoiceContact?: string
+  invoiceReturnPolicy?: string
   updatedAt?: Date | string
 }
 
@@ -757,6 +910,7 @@ export type StoreSettingsUpdateManyMutationInput = {
   storeAddress?: Prisma.StringFieldUpdateOperationsInput | string
   supportEmail?: Prisma.StringFieldUpdateOperationsInput | string
   supportPhone?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsappNumber?: Prisma.StringFieldUpdateOperationsInput | string
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   timeZone?: Prisma.StringFieldUpdateOperationsInput | string
   defaultOrderStatus?: Prisma.StringFieldUpdateOperationsInput | string
@@ -772,6 +926,14 @@ export type StoreSettingsUpdateManyMutationInput = {
   homepageSaleEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   homepageOffer?: Prisma.StringFieldUpdateOperationsInput | string
   homepageImage?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceTitle?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceTagline?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceSellerName?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceGstin?: Prisma.StringFieldUpdateOperationsInput | string
+  invoicePan?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceContact?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceReturnPolicy?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -790,6 +952,7 @@ export type StoreSettingsUncheckedUpdateManyInput = {
   storeAddress?: Prisma.StringFieldUpdateOperationsInput | string
   supportEmail?: Prisma.StringFieldUpdateOperationsInput | string
   supportPhone?: Prisma.StringFieldUpdateOperationsInput | string
+  whatsappNumber?: Prisma.StringFieldUpdateOperationsInput | string
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   timeZone?: Prisma.StringFieldUpdateOperationsInput | string
   defaultOrderStatus?: Prisma.StringFieldUpdateOperationsInput | string
@@ -805,6 +968,14 @@ export type StoreSettingsUncheckedUpdateManyInput = {
   homepageSaleEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   homepageOffer?: Prisma.StringFieldUpdateOperationsInput | string
   homepageImage?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceTitle?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceTagline?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceSellerName?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceGstin?: Prisma.StringFieldUpdateOperationsInput | string
+  invoicePan?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceContact?: Prisma.StringFieldUpdateOperationsInput | string
+  invoiceReturnPolicy?: Prisma.StringFieldUpdateOperationsInput | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -823,6 +994,7 @@ export type StoreSettingsCountOrderByAggregateInput = {
   storeAddress?: Prisma.SortOrder
   supportEmail?: Prisma.SortOrder
   supportPhone?: Prisma.SortOrder
+  whatsappNumber?: Prisma.SortOrder
   currency?: Prisma.SortOrder
   timeZone?: Prisma.SortOrder
   defaultOrderStatus?: Prisma.SortOrder
@@ -838,6 +1010,14 @@ export type StoreSettingsCountOrderByAggregateInput = {
   homepageSaleEnabled?: Prisma.SortOrder
   homepageOffer?: Prisma.SortOrder
   homepageImage?: Prisma.SortOrder
+  invoiceTitle?: Prisma.SortOrder
+  invoiceTagline?: Prisma.SortOrder
+  invoiceSellerName?: Prisma.SortOrder
+  invoiceGstin?: Prisma.SortOrder
+  invoicePan?: Prisma.SortOrder
+  invoiceAddress?: Prisma.SortOrder
+  invoiceContact?: Prisma.SortOrder
+  invoiceReturnPolicy?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
@@ -864,6 +1044,7 @@ export type StoreSettingsMaxOrderByAggregateInput = {
   storeAddress?: Prisma.SortOrder
   supportEmail?: Prisma.SortOrder
   supportPhone?: Prisma.SortOrder
+  whatsappNumber?: Prisma.SortOrder
   currency?: Prisma.SortOrder
   timeZone?: Prisma.SortOrder
   defaultOrderStatus?: Prisma.SortOrder
@@ -879,6 +1060,14 @@ export type StoreSettingsMaxOrderByAggregateInput = {
   homepageSaleEnabled?: Prisma.SortOrder
   homepageOffer?: Prisma.SortOrder
   homepageImage?: Prisma.SortOrder
+  invoiceTitle?: Prisma.SortOrder
+  invoiceTagline?: Prisma.SortOrder
+  invoiceSellerName?: Prisma.SortOrder
+  invoiceGstin?: Prisma.SortOrder
+  invoicePan?: Prisma.SortOrder
+  invoiceAddress?: Prisma.SortOrder
+  invoiceContact?: Prisma.SortOrder
+  invoiceReturnPolicy?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
@@ -897,6 +1086,7 @@ export type StoreSettingsMinOrderByAggregateInput = {
   storeAddress?: Prisma.SortOrder
   supportEmail?: Prisma.SortOrder
   supportPhone?: Prisma.SortOrder
+  whatsappNumber?: Prisma.SortOrder
   currency?: Prisma.SortOrder
   timeZone?: Prisma.SortOrder
   defaultOrderStatus?: Prisma.SortOrder
@@ -912,6 +1102,14 @@ export type StoreSettingsMinOrderByAggregateInput = {
   homepageSaleEnabled?: Prisma.SortOrder
   homepageOffer?: Prisma.SortOrder
   homepageImage?: Prisma.SortOrder
+  invoiceTitle?: Prisma.SortOrder
+  invoiceTagline?: Prisma.SortOrder
+  invoiceSellerName?: Prisma.SortOrder
+  invoiceGstin?: Prisma.SortOrder
+  invoicePan?: Prisma.SortOrder
+  invoiceAddress?: Prisma.SortOrder
+  invoiceContact?: Prisma.SortOrder
+  invoiceReturnPolicy?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
@@ -960,6 +1158,7 @@ export type StoreSettingsSelect<ExtArgs extends runtime.Types.Extensions.Interna
   storeAddress?: boolean
   supportEmail?: boolean
   supportPhone?: boolean
+  whatsappNumber?: boolean
   currency?: boolean
   timeZone?: boolean
   defaultOrderStatus?: boolean
@@ -975,6 +1174,14 @@ export type StoreSettingsSelect<ExtArgs extends runtime.Types.Extensions.Interna
   homepageSaleEnabled?: boolean
   homepageOffer?: boolean
   homepageImage?: boolean
+  invoiceTitle?: boolean
+  invoiceTagline?: boolean
+  invoiceSellerName?: boolean
+  invoiceGstin?: boolean
+  invoicePan?: boolean
+  invoiceAddress?: boolean
+  invoiceContact?: boolean
+  invoiceReturnPolicy?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["storeSettings"]>
 
@@ -993,6 +1200,7 @@ export type StoreSettingsSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   storeAddress?: boolean
   supportEmail?: boolean
   supportPhone?: boolean
+  whatsappNumber?: boolean
   currency?: boolean
   timeZone?: boolean
   defaultOrderStatus?: boolean
@@ -1008,6 +1216,14 @@ export type StoreSettingsSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   homepageSaleEnabled?: boolean
   homepageOffer?: boolean
   homepageImage?: boolean
+  invoiceTitle?: boolean
+  invoiceTagline?: boolean
+  invoiceSellerName?: boolean
+  invoiceGstin?: boolean
+  invoicePan?: boolean
+  invoiceAddress?: boolean
+  invoiceContact?: boolean
+  invoiceReturnPolicy?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["storeSettings"]>
 
@@ -1026,6 +1242,7 @@ export type StoreSettingsSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   storeAddress?: boolean
   supportEmail?: boolean
   supportPhone?: boolean
+  whatsappNumber?: boolean
   currency?: boolean
   timeZone?: boolean
   defaultOrderStatus?: boolean
@@ -1041,6 +1258,14 @@ export type StoreSettingsSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   homepageSaleEnabled?: boolean
   homepageOffer?: boolean
   homepageImage?: boolean
+  invoiceTitle?: boolean
+  invoiceTagline?: boolean
+  invoiceSellerName?: boolean
+  invoiceGstin?: boolean
+  invoicePan?: boolean
+  invoiceAddress?: boolean
+  invoiceContact?: boolean
+  invoiceReturnPolicy?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["storeSettings"]>
 
@@ -1059,6 +1284,7 @@ export type StoreSettingsSelectScalar = {
   storeAddress?: boolean
   supportEmail?: boolean
   supportPhone?: boolean
+  whatsappNumber?: boolean
   currency?: boolean
   timeZone?: boolean
   defaultOrderStatus?: boolean
@@ -1074,10 +1300,18 @@ export type StoreSettingsSelectScalar = {
   homepageSaleEnabled?: boolean
   homepageOffer?: boolean
   homepageImage?: boolean
+  invoiceTitle?: boolean
+  invoiceTagline?: boolean
+  invoiceSellerName?: boolean
+  invoiceGstin?: boolean
+  invoicePan?: boolean
+  invoiceAddress?: boolean
+  invoiceContact?: boolean
+  invoiceReturnPolicy?: boolean
   updatedAt?: boolean
 }
 
-export type StoreSettingsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "shippingFee" | "taxRate" | "codEnabled" | "codMinimumAmount" | "codMaximumAmount" | "codFee" | "cashfreeEnabled" | "siteName" | "siteLogo" | "siteFavicon" | "storeAddress" | "supportEmail" | "supportPhone" | "currency" | "timeZone" | "defaultOrderStatus" | "websiteUrl" | "maintenanceMode" | "registrationEnabled" | "passwordLoginEnabled" | "googleSignInEnabled" | "emailVerificationRequired" | "homepageEyebrow" | "homepageTitle" | "homepageDescription" | "homepageSaleEnabled" | "homepageOffer" | "homepageImage" | "updatedAt", ExtArgs["result"]["storeSettings"]>
+export type StoreSettingsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "shippingFee" | "taxRate" | "codEnabled" | "codMinimumAmount" | "codMaximumAmount" | "codFee" | "cashfreeEnabled" | "siteName" | "siteLogo" | "siteFavicon" | "storeAddress" | "supportEmail" | "supportPhone" | "whatsappNumber" | "currency" | "timeZone" | "defaultOrderStatus" | "websiteUrl" | "maintenanceMode" | "registrationEnabled" | "passwordLoginEnabled" | "googleSignInEnabled" | "emailVerificationRequired" | "homepageEyebrow" | "homepageTitle" | "homepageDescription" | "homepageSaleEnabled" | "homepageOffer" | "homepageImage" | "invoiceTitle" | "invoiceTagline" | "invoiceSellerName" | "invoiceGstin" | "invoicePan" | "invoiceAddress" | "invoiceContact" | "invoiceReturnPolicy" | "updatedAt", ExtArgs["result"]["storeSettings"]>
 
 export type $StoreSettingsPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "StoreSettings"
@@ -1097,6 +1331,7 @@ export type $StoreSettingsPayload<ExtArgs extends runtime.Types.Extensions.Inter
     storeAddress: string
     supportEmail: string
     supportPhone: string
+    whatsappNumber: string
     currency: string
     timeZone: string
     defaultOrderStatus: string
@@ -1112,6 +1347,14 @@ export type $StoreSettingsPayload<ExtArgs extends runtime.Types.Extensions.Inter
     homepageSaleEnabled: boolean
     homepageOffer: string
     homepageImage: string
+    invoiceTitle: string
+    invoiceTagline: string
+    invoiceSellerName: string
+    invoiceGstin: string
+    invoicePan: string
+    invoiceAddress: string
+    invoiceContact: string
+    invoiceReturnPolicy: string
     updatedAt: Date
   }, ExtArgs["result"]["storeSettings"]>
   composites: {}
@@ -1550,6 +1793,7 @@ export interface StoreSettingsFieldRefs {
   readonly storeAddress: Prisma.FieldRef<"StoreSettings", 'String'>
   readonly supportEmail: Prisma.FieldRef<"StoreSettings", 'String'>
   readonly supportPhone: Prisma.FieldRef<"StoreSettings", 'String'>
+  readonly whatsappNumber: Prisma.FieldRef<"StoreSettings", 'String'>
   readonly currency: Prisma.FieldRef<"StoreSettings", 'String'>
   readonly timeZone: Prisma.FieldRef<"StoreSettings", 'String'>
   readonly defaultOrderStatus: Prisma.FieldRef<"StoreSettings", 'String'>
@@ -1565,6 +1809,14 @@ export interface StoreSettingsFieldRefs {
   readonly homepageSaleEnabled: Prisma.FieldRef<"StoreSettings", 'Boolean'>
   readonly homepageOffer: Prisma.FieldRef<"StoreSettings", 'String'>
   readonly homepageImage: Prisma.FieldRef<"StoreSettings", 'String'>
+  readonly invoiceTitle: Prisma.FieldRef<"StoreSettings", 'String'>
+  readonly invoiceTagline: Prisma.FieldRef<"StoreSettings", 'String'>
+  readonly invoiceSellerName: Prisma.FieldRef<"StoreSettings", 'String'>
+  readonly invoiceGstin: Prisma.FieldRef<"StoreSettings", 'String'>
+  readonly invoicePan: Prisma.FieldRef<"StoreSettings", 'String'>
+  readonly invoiceAddress: Prisma.FieldRef<"StoreSettings", 'String'>
+  readonly invoiceContact: Prisma.FieldRef<"StoreSettings", 'String'>
+  readonly invoiceReturnPolicy: Prisma.FieldRef<"StoreSettings", 'String'>
   readonly updatedAt: Prisma.FieldRef<"StoreSettings", 'DateTime'>
 }
     

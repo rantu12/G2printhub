@@ -25,7 +25,7 @@ export default function HomepageSettingsForm() {
   const [form, setForm] = useState(defaultSettings);
   const [previewImage, setPreviewImage] = useState("");
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -57,7 +57,7 @@ export default function HomepageSettingsForm() {
         }
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (active) setLoaded(true);
       });
 
     return () => {
@@ -161,7 +161,7 @@ export default function HomepageSettingsForm() {
             value={form.homepageEyebrow}
             maxLength={60}
             onChange={(event) => updateTextField("homepageEyebrow", event.target.value)}
-            disabled={loading || saving}
+            disabled={!loaded || saving}
           />
           <small>Short label shown above the main heading.</small>
         </label>
@@ -173,7 +173,7 @@ export default function HomepageSettingsForm() {
             maxLength={120}
             onChange={(event) => updateTextField("homepageTitle", event.target.value)}
             required
-            disabled={loading || saving}
+            disabled={!loaded || saving}
           />
           <small>Maximum 120 characters.</small>
         </label>
@@ -187,7 +187,7 @@ export default function HomepageSettingsForm() {
             onChange={(event) =>
               updateTextField("homepageDescription", event.target.value)
             }
-            disabled={loading || saving}
+            disabled={!loaded || saving}
           />
           <small>Supporting text below the heading.</small>
         </label>
@@ -199,7 +199,7 @@ export default function HomepageSettingsForm() {
             maxLength={120}
             placeholder="Example: 20% OFF or Festive savings"
             onChange={(event) => updateTextField("homepageOffer", event.target.value)}
-            disabled={loading || saving}
+            disabled={!loaded || saving}
           />
           <small>
             Shown beside the red SALE badge when sales are enabled.
@@ -216,7 +216,7 @@ export default function HomepageSettingsForm() {
                 homepageSaleEnabled: event.target.checked,
               }))
             }
-            disabled={loading || saving}
+            disabled={!loaded || saving}
           />
           <span>
             <strong>{form.homepageSaleEnabled ? "Sale is ON" : "Sale is OFF"}</strong>
@@ -251,7 +251,7 @@ export default function HomepageSettingsForm() {
               setSelectedImage(file);
               setPreviewImage(previewUrl.current);
             }}
-            disabled={loading || saving}
+            disabled={!loaded || saving}
           />
           <small>
             JPG, PNG, or WebP. Maximum size: 5 MB.
@@ -262,7 +262,7 @@ export default function HomepageSettingsForm() {
               type="button"
               className="admin-homepage-remove-image"
               onClick={clearSelectedImage}
-              disabled={loading || saving}
+              disabled={!loaded || saving}
             >
               Remove current image
             </button>
@@ -298,9 +298,9 @@ export default function HomepageSettingsForm() {
         <button
           className="admin-primary-button admin-homepage-save"
           type="submit"
-          disabled={loading || saving}
+          disabled={!loaded || saving}
         >
-          {loading ? "Loading settings..." : saving ? "Saving..." : "Save homepage banner"}
+          {!loaded ? "Loading settings..." : saving ? "Saving..." : "Save homepage banner"}
         </button>
       </form>
     </section>

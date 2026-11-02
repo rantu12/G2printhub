@@ -95,7 +95,7 @@ export default function LoginForm({
             <span className="auth-badge">
               {isAdmin ? "ADMINISTRATOR ACCESS" : "CUSTOMER ACCOUNT"}
             </span>
-            <h1>{isAdmin ? "Admin sign in" : "Sign in to PrintHub"}</h1>
+            <h1>{isAdmin ? "Admin sign in" : "Sign in to G2 PrintHub"}</h1>
             <p>
               {isAdmin
                 ? "Sign in with an administrator account to manage your store."
@@ -192,7 +192,7 @@ export default function LoginForm({
           {!isAdmin && registrationEnabled && (
             <>
               <div className="auth-divider">
-                <span>New to PrintHub?</span>
+                <span>New to G2 PrintHub?</span>
               </div>
               <Link href="/register" className="secondary-auth-button">
                 Create a new account
@@ -216,7 +216,7 @@ export default function LoginForm({
 
         {!isAdmin && (
           <Link href="/" className="back-home">
-            ← Back to PrintHub
+            ← Back to G2 PrintHub
           </Link>
         )}
       </section>

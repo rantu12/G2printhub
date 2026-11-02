@@ -65,9 +65,9 @@ export async function sendVerificationEmail(
   const { error } = await resend.emails.send({
     from,
     to: email,
-    subject: "Verify your PrintHub email",
-    html: `<p>Thanks for creating a PrintHub account.</p><p><a href="${verificationUrl.toString()}">Verify your email address</a></p><p>This link expires in 30 minutes and can only be used once.</p>`,
-    text: `Thanks for creating a PrintHub account. Verify your email address: ${verificationUrl.toString()}\nThis link expires in 30 minutes and can only be used once.`,
+    subject: "Verify your G2 PrintHub email",
+    html: `<p>Thanks for creating a G2 PrintHub account.</p><p><a href="${verificationUrl.toString()}">Verify your email address</a></p><p>This link expires in 30 minutes and can only be used once.</p>`,
+    text: `Thanks for creating a G2 PrintHub account. Verify your email address: ${verificationUrl.toString()}\nThis link expires in 30 minutes and can only be used once.`,
   });
 
   if (error) {

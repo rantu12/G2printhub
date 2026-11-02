@@ -31,6 +31,7 @@ export async function ensureStoreSettings(
     storeAddress: string;
     supportEmail: string;
     supportPhone: string;
+    whatsappNumber: string;
     currency: string;
     timeZone: string;
     defaultOrderStatus: string;

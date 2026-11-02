@@ -27,23 +27,11 @@ export default function ShippingTaxSettingsForm() {
   const [saved, setSaved] = useState<SettingsForm>(defaultSettings);
   const [cashfreeConfigured, setCashfreeConfigured] = useState(false);
   const [cashfreeMode, setCashfreeMode] = useState("sandbox");
-  const [loading, setLoading] = useState(true);
+  const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const dirty = JSON.stringify(form) !== JSON.stringify(saved);
-  const shippingFee = Number(form.shippingFee) || 0;
-  const taxRate = Number(form.taxRate) || 0;
-  const sampleSubtotal = 1500;
-  const sampleCodFee = form.codEnabled ? Number(form.codFee) || 0 : 0;
-  const taxableAmount = sampleSubtotal + shippingFee + sampleCodFee;
-  const sampleTax = (taxableAmount * taxRate) / 100;
-  const sampleTotal = taxableAmount + sampleTax;
-  const formatCurrency = (amount: number) =>
-    `₹${amount.toLocaleString("en-IN", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
 
   useEffect(() => {
     if (!dirty) return;
@@ -96,7 +84,7 @@ export default function ShippingTaxSettingsForm() {
         }
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (active) setLoaded(true);
       });
     return () => {
       active = false;
@@ -202,86 +190,12 @@ export default function ShippingTaxSettingsForm() {
                 }))
               }
               required
-              disabled={loading || saving}
+              disabled={!loaded || saving}
             />
             <small>Charged once per order, regardless of item quantity.</small>
           </label>
 
           <div style={{ display: "grid", gap: "1rem" }}>
-            <label className="admin-coupon-field">
-              <span>Cash on Delivery</span>
-              <select
-                value={form.codEnabled ? "enabled" : "disabled"}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    codEnabled: event.target.value === "enabled",
-                  }))
-                }
-                disabled={loading || saving || !dirty}
-              >
-                <option value="enabled">Enabled</option>
-                <option value="disabled">Disabled</option>
-              </select>
-              <small>When disabled, customers cannot place COD orders.</small>
-            </label>
-            <label className="admin-coupon-field">
-              <span>COD minimum order amount (₹)</span>
-              <input
-                type="number"
-                min="0"
-                max="1000000"
-                step="0.01"
-                value={form.codMinimumAmount}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    codMinimumAmount: event.target.value,
-                  }))
-                }
-                required
-                disabled={loading || saving}
-              />
-              <small>Checked against the server-calculated final order total, including the COD fee.</small>
-            </label>
-            <label className="admin-coupon-field">
-              <span>COD maximum order amount (₹)</span>
-              <input
-                type="number"
-                min="0"
-                max="1000000"
-                step="0.01"
-                value={form.codMaximumAmount}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    codMaximumAmount: event.target.value,
-                  }))
-                }
-                disabled={loading || saving}
-              />
-              <small>Leave blank for no maximum.</small>
-            </label>
-            <label className="admin-coupon-field">
-              <span>COD fee (₹)</span>
-              <input
-                type="number"
-                min="0"
-                max="1000000"
-                step="0.01"
-                value={form.codFee}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    codFee: event.target.value,
-                  }))
-                }
-                required
-                disabled={loading || saving}
-              />
-              <small>Added to shipping and included in server-calculated order totals.</small>
-            </label>
-
             <label className="admin-coupon-field">
               <span>Cashfree Payments</span>
               <select
@@ -292,7 +206,7 @@ export default function ShippingTaxSettingsForm() {
                     cashfreeEnabled: event.target.value === "enabled",
                   }))
                 }
-                disabled={loading || saving}
+                disabled={!loaded || saving}
               >
                 <option value="enabled">Enabled</option>
                 <option value="disabled">Disabled</option>
@@ -320,7 +234,7 @@ export default function ShippingTaxSettingsForm() {
                 }))
               }
               required
-              disabled={loading || saving}
+              disabled={!loaded || saving}
             />
             <small>
               Tax is calculated on the discounted item subtotal plus shipping.
@@ -330,9 +244,9 @@ export default function ShippingTaxSettingsForm() {
           <button
             className="admin-primary-button"
             type="submit"
-            disabled={loading || saving || !dirty}
+            disabled={!loaded || saving || !dirty}
           >
-            {loading ? "Loading settings..." : saving ? "Saving..." : "Save settings"}
+            {!loaded ? "Loading settings..." : saving ? "Saving..." : "Save settings"}
           </button>
           <button
             type="button"
@@ -342,7 +256,7 @@ export default function ShippingTaxSettingsForm() {
               setError("");
               setMessage("");
             }}
-            disabled={loading || saving || !dirty}
+            disabled={!loaded || saving || !dirty}
           >
             Cancel
           </button>
@@ -356,73 +270,13 @@ export default function ShippingTaxSettingsForm() {
                 setMessage("");
               }
             }}
-            disabled={loading || saving}
+            disabled={!loaded || saving}
           >
             Reset to defaults
           </button>
         </form>
       </section>
 
-      <aside className="admin-settings-checkout-preview" aria-label="Checkout total preview">
-        <div className="admin-settings-preview-heading">
-          <div>
-            <span className="admin-coupon-form-eyebrow">SEE THE IMPACT</span>
-            <h2>Checkout preview</h2>
-          </div>
-          <span className="admin-settings-live-badge">
-            <span aria-hidden="true" />
-            {loading ? "Loading" : "Live"}
-          </span>
-        </div>
-
-        <p className="admin-settings-preview-caption">
-          A sample order updates as you edit your rates.
-        </p>
-
-        <div className="admin-settings-sample-order">
-          <div className="admin-settings-sample-order-icon" aria-hidden="true">
-            P
-          </div>
-          <div>
-            <strong>Sample order</strong>
-            <span>Discounted items subtotal</span>
-          </div>
-          <strong>{formatCurrency(sampleSubtotal)}</strong>
-        </div>
-
-        <div className="admin-settings-breakdown">
-          <div>
-            <span>Items subtotal</span>
-            <span>{formatCurrency(sampleSubtotal)}</span>
-          </div>
-          <div>
-            <span>Shipping</span>
-            <span>{formatCurrency(shippingFee)}</span>
-          </div>
-          {sampleCodFee > 0 && (
-            <div>
-              <span>Cash on Delivery fee</span>
-              <span>{formatCurrency(sampleCodFee)}</span>
-            </div>
-          )}
-          <div>
-            <span>
-              Tax <small>({taxRate.toFixed(2)}%)</small>
-            </span>
-            <span>{formatCurrency(sampleTax)}</span>
-          </div>
-        </div>
-
-        <div className="admin-settings-total">
-          <span>Estimated customer total</span>
-          <strong>{formatCurrency(sampleTotal)}</strong>
-        </div>
-
-        <p className="admin-settings-preview-note">
-          Tax applies to the discounted items subtotal plus shipping. This
-          example is illustrative; actual totals use each customer&apos;s order.
-        </p>
-      </aside>
     </div>
   );
 }

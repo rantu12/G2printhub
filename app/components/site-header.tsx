@@ -5,58 +5,32 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart-context";
 
-export default function SiteHeader() {
+type SiteHeaderProps = {
+  initialSiteName: string;
+  initialSiteLogo: string;
+  initialSiteFavicon: string;
+};
+
+export default function SiteHeader({
+  initialSiteName,
+  initialSiteLogo,
+  initialSiteFavicon,
+}: SiteHeaderProps) {
   const pathname = usePathname();
   const { itemCount } = useCart();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [accountName, setAccountName] = useState("");
-  const [siteName, setSiteName] = useState("PrintHub");
-  const [siteLogo, setSiteLogo] = useState("");
-  const [siteFavicon, setSiteFavicon] = useState("");
 
   useEffect(() => {
-    let active = true;
-    fetch("/api/store-settings/public", { cache: "no-store" })
-      .then(async (response) => {
-        const data: unknown = await response.json();
-        if (
-          !response.ok ||
-          !data ||
-          typeof data !== "object" ||
-          !("settings" in data) ||
-          !data.settings ||
-          typeof data.settings !== "object"
-        ) {
-          throw new Error("Unable to load public store identity.");
-        }
-        const settings = data.settings as Record<string, unknown>;
-        if (!active) return;
-        if (typeof settings.siteName === "string" && settings.siteName.trim()) {
-          setSiteName(settings.siteName.trim());
-        }
-        if (typeof settings.siteLogo === "string") setSiteLogo(settings.siteLogo);
-        if (typeof settings.siteFavicon === "string") {
-          setSiteFavicon(settings.siteFavicon);
-        }
-      })
-      .catch((error: unknown) => {
-        console.error("Store header identity load failed:", error);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!siteFavicon) return;
+    if (!initialSiteFavicon) return;
     let link = document.querySelector<HTMLLinkElement>('link[rel~="icon"]');
     if (!link) {
       link = document.createElement("link");
       link.rel = "icon";
       document.head.appendChild(link);
     }
-    link.href = siteFavicon;
-  }, [siteFavicon]);
+    link.href = initialSiteFavicon;
+  }, [initialSiteFavicon]);
 
   useEffect(() => {
     if (
@@ -111,25 +85,17 @@ export default function SiteHeader() {
   return (
     <nav className="shop-top-nav" aria-label="Store navigation">
       <div className="shop-top-nav-inner">
-        <Link href="/" className="shop-top-nav-logo" aria-label={`${siteName} home`}>
-          <span
-            className="shop-top-nav-logo-icon"
-            aria-hidden="true"
-            style={
-              siteLogo
-                ? {
-                    backgroundImage: `url("${siteLogo.replaceAll('"', "%22")}")`,
-                    backgroundPosition: "center",
-                    backgroundSize: "contain",
-                    backgroundRepeat: "no-repeat",
-                    color: "transparent",
-                  }
-                : undefined
-            }
-          >
-            P
-          </span>
-          <span>{siteName}</span>
+        <Link href="/" className="shop-top-nav-logo" aria-label={`${initialSiteName} home`}>
+          {initialSiteLogo ? (
+            <span
+              className="shop-top-nav-logo-image"
+              aria-hidden="true"
+              style={{
+                backgroundImage: `url("${initialSiteLogo.replaceAll('"', "%22")}")`,
+              }}
+            />
+          ) : null}
+          <span>{initialSiteName}</span>
         </Link>
         <div className="shop-top-nav-links">
           <Link href="/">Home</Link>

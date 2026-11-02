@@ -28,19 +28,20 @@ test("Email normalization consistently trims and lowercases addresses", () => {
 });
 
 test("Registration server logic strictly enforces CUSTOMER role and rejects ADMIN spoofing", () => {
-  const sanitizeRegistrationRole = (clientPayload: Record<string, unknown>) => {
-    // Server must always ignore any role passed by the client
-    const safeRole = "CUSTOMER";
-    return safeRole;
-  };
+  const sanitizeRegistrationPayload = (
+    clientPayload: Record<string, unknown>,
+  ) => ({
+    ...clientPayload,
+    role: "CUSTOMER",
+  });
 
   assert.equal(
-    sanitizeRegistrationRole({ role: "ADMIN", name: "Hacker" }),
+    sanitizeRegistrationPayload({ role: "ADMIN", name: "Hacker" }).role,
     "CUSTOMER",
     "Client cannot set ADMIN role during registration"
   );
   assert.equal(
-    sanitizeRegistrationRole({ role: "SUPERADMIN", name: "User" }),
+    sanitizeRegistrationPayload({ role: "SUPERADMIN", name: "User" }).role,
     "CUSTOMER"
   );
 });
@@ -173,10 +174,8 @@ test("Authenticated redirect logic redirects users to their appropriate dashboar
     if (!user) {
       return null; // Stay on login/register page
     }
-    if (user.role === "ADMIN") {
-      return "/admin";
-    }
-    return "/account";
+    const destination = user.role === "ADMIN" ? "/admin" : "/account";
+    return currentPath === destination ? null : destination;
   };
 
   // Unauthenticated user -> no redirect, can view login/register
@@ -190,13 +189,15 @@ test("Authenticated redirect logic redirects users to their appropriate dashboar
   // Authenticated admin visiting /login or /admin/login -> redirected to /admin
   assert.equal(getRedirectForUser({ role: "ADMIN" }, "/login"), "/admin");
   assert.equal(getRedirectForUser({ role: "ADMIN" }, "/admin/login"), "/admin");
+  assert.equal(getRedirectForUser({ role: "CUSTOMER" }, "/account"), null);
+  assert.equal(getRedirectForUser({ role: "ADMIN" }, "/admin"), null);
 });
 
 test("email verification configuration requires credentials and an app URL", () => {
   assert.equal(
     isEmailVerificationConfiguredWithValues(
       "resend-key",
-      "PrintHub <support@example.com>",
+      "G2 PrintHub <support@example.com>",
       "https://example.com"
     ),
     true

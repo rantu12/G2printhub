@@ -184,7 +184,7 @@ export async function POST(request: Request) {
         success: true,
         message: verificationRequired
           ? "Your account was created. Check your email to verify your address before signing in."
-          : "Account created successfully! Welcome to PrintHub.",
+          : "Account created successfully! Welcome to G2 PrintHub.",
         redirectTo: verificationRequired ? undefined : "/account",
         requiresEmailVerification: verificationRequired,
         user: {

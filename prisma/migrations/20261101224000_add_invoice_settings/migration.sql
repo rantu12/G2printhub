@@ -1,0 +1,9 @@
+ALTER TABLE "StoreSettings"
+ADD COLUMN "invoiceTitle" TEXT NOT NULL DEFAULT 'Tax Invoice',
+ADD COLUMN "invoiceTagline" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "invoiceSellerName" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "invoiceGstin" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "invoicePan" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "invoiceAddress" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "invoiceContact" TEXT NOT NULL DEFAULT '',
+ADD COLUMN "invoiceReturnPolicy" TEXT NOT NULL DEFAULT '';

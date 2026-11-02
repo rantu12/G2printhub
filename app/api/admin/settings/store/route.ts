@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getStoreSettings, ensureStoreSettings } from "@/lib/store-settings";
 import { isEmailVerificationConfigured } from "@/lib/verification-email";
+import { getWhatsAppChatUrl } from "@/lib/whatsapp-number";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^[+0-9().\s-]{0,30}$/;
@@ -37,6 +38,7 @@ function publicSettings(settings: Awaited<ReturnType<typeof getStoreSettings>>) 
     storeAddress: settings.storeAddress,
     supportEmail: settings.supportEmail,
     supportPhone: settings.supportPhone,
+    whatsappNumber: settings.whatsappNumber,
     currency: settings.currency,
     timeZone: settings.timeZone,
     defaultOrderStatus: settings.defaultOrderStatus,
@@ -91,6 +93,7 @@ export async function PUT(request: Request) {
       "storeAddress",
       "supportEmail",
       "supportPhone",
+      "whatsappNumber",
       "currency",
       "timeZone",
       "defaultOrderStatus",
@@ -112,6 +115,7 @@ export async function PUT(request: Request) {
       ["storeAddress", 500],
       ["supportEmail", 254],
       ["supportPhone", 30],
+      ["whatsappNumber", 30],
     ] as const;
     for (const [key, maximum] of textFields) {
       if (!isText(values[key], maximum) || values[key].trim().length === 0 && key === "siteName") {
@@ -134,6 +138,21 @@ export async function PUT(request: Request) {
     const supportPhone = (values.supportPhone as string).trim();
     if (!PHONE_PATTERN.test(supportPhone)) {
       return json({ success: false, message: "Enter a valid support phone." }, 400);
+    }
+    const whatsappNumber = (values.whatsappNumber as string).trim();
+    if (
+      whatsappNumber &&
+      (!PHONE_PATTERN.test(whatsappNumber) ||
+        !getWhatsAppChatUrl(whatsappNumber))
+    ) {
+      return json(
+        {
+          success: false,
+          message:
+            "Enter a valid WhatsApp number with country code (8 to 15 digits).",
+        },
+        400
+      );
     }
     if (values.currency !== "INR") {
       return json(
@@ -238,6 +257,7 @@ export async function PUT(request: Request) {
         storeAddress: (values.storeAddress as string).trim(),
         supportEmail,
         supportPhone,
+        whatsappNumber,
         currency: "INR",
         timeZone: values.timeZone as string,
         defaultOrderStatus: values.defaultOrderStatus as string,

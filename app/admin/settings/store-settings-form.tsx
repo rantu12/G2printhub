@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 type StoreSettingsForm = {
   siteName: string;
@@ -9,6 +9,7 @@ type StoreSettingsForm = {
   storeAddress: string;
   supportEmail: string;
   supportPhone: string;
+  whatsappNumber: string;
   currency: "INR";
   timeZone: string;
   defaultOrderStatus: "PENDING" | "ACCEPTED";
@@ -21,12 +22,13 @@ type StoreSettingsForm = {
 };
 
 const defaultSettings: StoreSettingsForm = {
-  siteName: "PrintHub",
+  siteName: "G2 PrintHub",
   siteLogo: "",
   siteFavicon: "",
   storeAddress: "",
   supportEmail: "",
   supportPhone: "",
+  whatsappNumber: "",
   currency: "INR",
   timeZone: "Asia/Kolkata",
   defaultOrderStatus: "PENDING",
@@ -50,11 +52,20 @@ export default function StoreSettingsForm() {
   const [saved, setSaved] = useState<StoreSettingsForm>(defaultSettings);
   const [emailConfigured, setEmailConfigured] = useState(false);
   const [effectiveVerification, setEffectiveVerification] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const dirty = JSON.stringify(form) !== JSON.stringify(saved);
+  const [selectedLogo, setSelectedLogo] = useState<File | null>(null);
+  const [selectedFavicon, setSelectedFavicon] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState("");
+  const logoPreviewUrl = useRef("");
+  const logoInput = useRef<HTMLInputElement>(null);
+  const faviconInput = useRef<HTMLInputElement>(null);
+  const dirty =
+    JSON.stringify(form) !== JSON.stringify(saved) ||
+    selectedLogo !== null ||
+    selectedFavicon !== null;
 
   useEffect(() => {
     let active = true;
@@ -69,6 +80,7 @@ export default function StoreSettingsForm() {
         const loaded = { ...defaultSettings, ...data.settings };
         setForm(loaded);
         setSaved(loaded);
+        setLogoPreview(loaded.siteLogo);
         setEmailConfigured(data.emailConfigured);
         setEffectiveVerification(data.effectiveEmailVerificationRequired);
       })
@@ -82,10 +94,11 @@ export default function StoreSettingsForm() {
         }
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (active) setLoaded(true);
       });
     return () => {
       active = false;
+      if (logoPreviewUrl.current) URL.revokeObjectURL(logoPreviewUrl.current);
     };
   }, []);
 
@@ -107,9 +120,150 @@ export default function StoreSettingsForm() {
   }
 
   function cancel() {
+    if (logoPreviewUrl.current) {
+      URL.revokeObjectURL(logoPreviewUrl.current);
+      logoPreviewUrl.current = "";
+    }
+    setSelectedLogo(null);
+    setSelectedFavicon(null);
+    setLogoPreview(saved.siteLogo);
+    if (logoInput.current) logoInput.current.value = "";
+    if (faviconInput.current) faviconInput.current.value = "";
     setForm(saved);
     setError("");
     setMessage("");
+  }
+
+  function chooseLogo(file: File | null) {
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setError("Choose a JPG, PNG, or WebP logo.");
+      if (logoInput.current) logoInput.current.value = "";
+      return;
+    }
+    if (file.size === 0 || file.size > 5 * 1024 * 1024) {
+      setError("Logo must be between 1 byte and 5 MB.");
+      if (logoInput.current) logoInput.current.value = "";
+      return;
+    }
+
+    if (logoPreviewUrl.current) URL.revokeObjectURL(logoPreviewUrl.current);
+    logoPreviewUrl.current = URL.createObjectURL(file);
+    setSelectedLogo(file);
+    setLogoPreview(logoPreviewUrl.current);
+    setError("");
+    setMessage("");
+  }
+
+  function chooseFavicon(file: File | null) {
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setError("Choose a JPG, PNG, or WebP favicon.");
+      if (faviconInput.current) faviconInput.current.value = "";
+      return;
+    }
+    if (file.size === 0 || file.size > 5 * 1024 * 1024) {
+      setError("Favicon must be between 1 byte and 5 MB.");
+      if (faviconInput.current) faviconInput.current.value = "";
+      return;
+    }
+
+    setSelectedFavicon(file);
+    setError("");
+    setMessage("");
+  }
+
+  function removeLogo() {
+    if (logoPreviewUrl.current) {
+      URL.revokeObjectURL(logoPreviewUrl.current);
+      logoPreviewUrl.current = "";
+    }
+    setSelectedLogo(null);
+    setLogoPreview("");
+    update("siteLogo", "");
+    if (logoInput.current) logoInput.current.value = "";
+  }
+
+  function removeFavicon() {
+    setSelectedFavicon(null);
+    update("siteFavicon", "");
+    if (faviconInput.current) faviconInput.current.value = "";
+  }
+
+  async function uploadIdentityImage(file: File, label: string) {
+    const uploadData = new FormData();
+    uploadData.append("image", file);
+    const uploadResponse = await fetch(
+      "/api/admin/settings/store/upload-image",
+      { method: "POST", body: uploadData }
+    );
+    const uploaded: { success?: boolean; message?: string; image?: string } =
+      await uploadResponse.json();
+    if (!uploadResponse.ok || !uploaded.success || !uploaded.image) {
+      throw new Error(uploaded.message || `Unable to upload the ${label}.`);
+    }
+    return uploaded.image;
+  }
+
+  async function saveIdentityField(
+    field: "siteName" | "siteLogo" | "siteFavicon" | "whatsappNumber"
+  ) {
+    setSaving(true);
+    setError("");
+    setMessage("");
+    try {
+      let value: string;
+      if (field === "siteLogo") {
+        value = selectedLogo
+          ? await uploadIdentityImage(selectedLogo, "site logo")
+          : form.siteLogo;
+      } else if (field === "siteFavicon") {
+        value = selectedFavicon
+          ? await uploadIdentityImage(selectedFavicon, "favicon")
+          : form.siteFavicon;
+      } else {
+        value = form[field];
+      }
+
+      const response = await fetch("/api/admin/settings/store", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...saved, [field]: value }),
+      });
+      const data: SettingsResponse & {
+        success?: boolean;
+        message?: string;
+      } = await response.json();
+      if (!response.ok || !data.success || !data.settings) {
+        throw new Error(data.message || `Unable to save ${field}.`);
+      }
+
+      const savedSettings = { ...defaultSettings, ...data.settings };
+      setSaved(savedSettings);
+      setForm((current) => ({ ...current, [field]: savedSettings[field] }));
+      if (field === "siteLogo") {
+        if (logoPreviewUrl.current) {
+          URL.revokeObjectURL(logoPreviewUrl.current);
+          logoPreviewUrl.current = "";
+        }
+        setSelectedLogo(null);
+        setLogoPreview(savedSettings.siteLogo);
+        if (logoInput.current) logoInput.current.value = "";
+      }
+      if (field === "siteFavicon") {
+        setSelectedFavicon(null);
+        if (faviconInput.current) faviconInput.current.value = "";
+      }
+      setMessage(data.message || "Setting saved.");
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : `Unable to save ${field}.`
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -118,10 +272,19 @@ export default function StoreSettingsForm() {
     setError("");
     setMessage("");
     try {
+      let siteLogo = form.siteLogo;
+      let siteFavicon = form.siteFavicon;
+      if (selectedLogo) {
+        siteLogo = await uploadIdentityImage(selectedLogo, "site logo");
+      }
+      if (selectedFavicon) {
+        siteFavicon = await uploadIdentityImage(selectedFavicon, "favicon");
+      }
+
       const response = await fetch("/api/admin/settings/store", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, siteLogo, siteFavicon }),
       });
       const data: SettingsResponse & {
         success?: boolean;
@@ -131,8 +294,17 @@ export default function StoreSettingsForm() {
         throw new Error(data.message || "Unable to save store settings.");
       }
       const savedSettings = { ...defaultSettings, ...data.settings };
+      if (logoPreviewUrl.current) {
+        URL.revokeObjectURL(logoPreviewUrl.current);
+        logoPreviewUrl.current = "";
+      }
+      setSelectedLogo(null);
+      setSelectedFavicon(null);
+      if (logoInput.current) logoInput.current.value = "";
+      if (faviconInput.current) faviconInput.current.value = "";
       setForm(savedSettings);
       setSaved(savedSettings);
+      setLogoPreview(savedSettings.siteLogo);
       setEmailConfigured(data.emailConfigured);
       setEffectiveVerification(data.effectiveEmailVerificationRequired);
       setMessage(data.message || "Settings saved.");
@@ -169,57 +341,136 @@ export default function StoreSettingsForm() {
       <section className="admin-integration-group" aria-labelledby="identity-settings-heading">
         <h3 id="identity-settings-heading">Site identity</h3>
         <div className="admin-settings-fields-grid">
-          <label className="admin-coupon-field">
-            <span>Website name</span>
+          <div className="admin-coupon-field">
+            <label htmlFor="admin-site-name">Website name</label>
             <input
+              id="admin-site-name"
               value={form.siteName}
               maxLength={100}
               required
               onChange={(event) => update("siteName", event.target.value)}
-              disabled={loading || saving}
+              disabled={!loaded || saving}
             />
-          </label>
-          <label className="admin-coupon-field">
-            <span>Website logo URL or local path</span>
+            <button
+              type="button"
+              className="admin-primary-button"
+              onClick={() => saveIdentityField("siteName")}
+              disabled={!loaded || saving || form.siteName === saved.siteName}
+            >
+              Save website name
+            </button>
+          </div>
+          <div className="admin-coupon-field">
+            <span>Upload logo image</span>
             <input
-              value={form.siteLogo}
-              maxLength={2048}
-              placeholder="/uploads/logo.png"
-              onChange={(event) => update("siteLogo", event.target.value)}
-              disabled={loading || saving}
+              ref={logoInput}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(event) => chooseLogo(event.target.files?.[0] ?? null)}
+              disabled={!loaded || saving}
+              aria-label="Upload website logo"
             />
-            <small>Use a local public path or an HTTP(S) image URL.</small>
-          </label>
-          <label className="admin-coupon-field">
-            <span>Favicon URL or local path</span>
+            <small>JPG, PNG, or WebP. Maximum size: 5 MB.</small>
+            {logoPreview && (
+              <span
+                role="img"
+                aria-label="Website logo preview"
+                style={{
+                  display: "block",
+                  width: "12rem",
+                  height: "4rem",
+                  backgroundImage: `url("${logoPreview.replaceAll('"', "%22")}")`,
+                  backgroundPosition: "left center",
+                  backgroundSize: "contain",
+                  backgroundRepeat: "no-repeat",
+                  marginTop: ".5rem",
+                }}
+              />
+            )}
+            {(logoPreview || form.siteLogo) && (
+              <button
+                type="button"
+                className="admin-secondary-button"
+                onClick={removeLogo}
+                disabled={!loaded || saving}
+              >
+                Remove logo
+              </button>
+            )}
+            <button
+              type="button"
+              className="admin-primary-button"
+              onClick={() => saveIdentityField("siteLogo")}
+              disabled={
+                !loaded ||
+                saving ||
+                (!selectedLogo && form.siteLogo === saved.siteLogo)
+              }
+            >
+              Save logo
+            </button>
+          </div>
+          <div className="admin-coupon-field">
+            <span>Upload favicon</span>
             <input
-              value={form.siteFavicon}
-              maxLength={2048}
-              placeholder="/favicon.ico"
-              onChange={(event) => update("siteFavicon", event.target.value)}
-              disabled={loading || saving}
+              ref={faviconInput}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(event) =>
+                chooseFavicon(event.target.files?.[0] ?? null)
+              }
+              disabled={!loaded || saving}
+              aria-label="Upload favicon"
             />
-          </label>
-          <label className="admin-coupon-field">
-            <span>Support email</span>
+            <small>JPG, PNG, or WebP. Maximum size: 5 MB.</small>
+            {(selectedFavicon || form.siteFavicon) && (
+              <button
+                type="button"
+                className="admin-secondary-button"
+                onClick={removeFavicon}
+                disabled={!loaded || saving}
+              >
+                Remove favicon
+              </button>
+            )}
+            <button
+              type="button"
+              className="admin-primary-button"
+              onClick={() => saveIdentityField("siteFavicon")}
+              disabled={
+                !loaded ||
+                saving ||
+                (!selectedFavicon && form.siteFavicon === saved.siteFavicon)
+              }
+            >
+              Save favicon
+            </button>
+          </div>
+          <div className="admin-coupon-field">
+            <label htmlFor="admin-whatsapp-number">WhatsApp chat number</label>
             <input
-              type="email"
-              value={form.supportEmail}
-              maxLength={254}
-              onChange={(event) => update("supportEmail", event.target.value)}
-              disabled={loading || saving}
-            />
-          </label>
-          <label className="admin-coupon-field">
-            <span>Support phone</span>
-            <input
+              id="admin-whatsapp-number"
               type="tel"
-              value={form.supportPhone}
+              value={form.whatsappNumber}
               maxLength={30}
-              onChange={(event) => update("supportPhone", event.target.value)}
-              disabled={loading || saving}
+              placeholder="+91 98765 43210"
+              onChange={(event) => update("whatsappNumber", event.target.value)}
+              disabled={!loaded || saving}
             />
-          </label>
+            <small>
+              Include the country code. Leave blank to hide the floating WhatsApp button.
+            </small>
+            <button
+              type="button"
+              className="admin-primary-button"
+              onClick={() => saveIdentityField("whatsappNumber")}
+              disabled={
+                !loaded || saving || form.whatsappNumber === saved.whatsappNumber
+              }
+            >
+              Save WhatsApp number
+            </button>
+          </div>
           <label className="admin-coupon-field">
             <span>Website URL</span>
             <input
@@ -228,7 +479,7 @@ export default function StoreSettingsForm() {
               maxLength={2048}
               placeholder="https://shop.example.com"
               onChange={(event) => update("websiteUrl", event.target.value)}
-              disabled={loading || saving}
+              disabled={!loaded || saving}
             />
             <small>
               Used for Google OAuth and payment/email redirects. Leave blank to
@@ -236,21 +487,11 @@ export default function StoreSettingsForm() {
             </small>
           </label>
           <label className="admin-coupon-field">
-            <span>Store address</span>
-            <textarea
-              value={form.storeAddress}
-              maxLength={500}
-              rows={3}
-              onChange={(event) => update("storeAddress", event.target.value)}
-              disabled={loading || saving}
-            />
-          </label>
-          <label className="admin-coupon-field">
             <span>Time zone</span>
             <select
               value={form.timeZone}
               onChange={(event) => update("timeZone", event.target.value)}
-              disabled={loading || saving}
+              disabled={!loaded || saving}
             >
               <option value="Asia/Kolkata">Asia/Kolkata</option>
               <option value="UTC">UTC</option>
@@ -258,23 +499,6 @@ export default function StoreSettingsForm() {
               <option value="Europe/London">Europe/London</option>
               <option value="Asia/Singapore">Asia/Singapore</option>
             </select>
-          </label>
-          <label className="admin-coupon-field">
-            <span>Default order status for COD orders</span>
-            <select
-              value={form.defaultOrderStatus}
-              onChange={(event) =>
-                update(
-                  "defaultOrderStatus",
-                  event.target.value as StoreSettingsForm["defaultOrderStatus"]
-                )
-              }
-              disabled={loading || saving}
-            >
-              <option value="PENDING">Pending</option>
-              <option value="ACCEPTED">Accepted</option>
-            </select>
-            <small>Cashfree orders remain PENDING until payment is verified.</small>
           </label>
           <label className="admin-coupon-field">
             <span>Store currency</span>
@@ -308,7 +532,7 @@ export default function StoreSettingsForm() {
               }
               update("maintenanceMode", event.target.checked);
             }}
-            disabled={loading || saving}
+            disabled={!loaded || saving}
           />
         </label>
       </section>
@@ -328,7 +552,7 @@ export default function StoreSettingsForm() {
               type="checkbox"
               checked={form[key]}
               onChange={(event) => update(key, event.target.checked)}
-              disabled={loading || saving}
+              disabled={!loaded || saving}
             />
           </label>
         ))}
@@ -350,7 +574,7 @@ export default function StoreSettingsForm() {
                   : event.target.value === "required"
               )
             }
-            disabled={loading || saving}
+            disabled={!loaded || saving}
           >
             <option value="automatic">Automatic (require when email delivery is configured)</option>
             <option value="required">Required</option>
@@ -368,10 +592,10 @@ export default function StoreSettingsForm() {
       </section>
 
       <div className="admin-settings-actions">
-        <button type="submit" className="admin-primary-button" disabled={loading || saving || !dirty}>
-          {loading ? "Loading settings…" : saving ? "Saving…" : "Save changes"}
+        <button type="submit" className="admin-primary-button" disabled={!loaded || saving || !dirty}>
+          {!loaded ? "Loading settings…" : saving ? "Saving…" : "Save changes"}
         </button>
-        <button type="button" className="admin-secondary-button" onClick={cancel} disabled={loading || saving || !dirty}>
+        <button type="button" className="admin-secondary-button" onClick={cancel} disabled={!loaded || saving || !dirty}>
           Cancel
         </button>
         <button
@@ -384,7 +608,7 @@ export default function StoreSettingsForm() {
               setError("");
             }
           }}
-          disabled={loading || saving}
+          disabled={!loaded || saving}
         >
           Reset to defaults
         </button>

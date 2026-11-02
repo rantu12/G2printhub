@@ -281,7 +281,7 @@ return ( <main className="shop-page">
               ) : (
                 <div className="shop-product-placeholder">
                   <span>✳</span>
-                  <small>PrintHub</small>
+                  <small>G2 PrintHub</small>
                 </div>
               )}
 

@@ -5,7 +5,7 @@ export default function TermsPage() {
     <InfoPage
       eyebrow="PLEASE READ"
       title="Terms of Service"
-      introduction="These terms describe the basic expectations for using PrintHub and placing an order through the site."
+      introduction="These terms describe the basic expectations for using G2 PrintHub and placing an order through the site."
       sections={[
         {
           title: "Using the site",
@@ -17,7 +17,7 @@ export default function TermsPage() {
           title: "Orders",
           paragraphs: [
             "An order request is subject to product availability and confirmation. Review the product, order summary, and any instructions shown during checkout before submitting your order.",
-            "If you need to correct an order detail, contact PrintHub as soon as possible and include your order information. Changes may not be possible once an order is being prepared.",
+            "If you need to correct an order detail, contact G2 PrintHub as soon as possible and include your order information. Changes may not be possible once an order is being prepared.",
           ],
         },
         {

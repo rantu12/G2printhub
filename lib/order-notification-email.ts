@@ -70,7 +70,7 @@ export async function sendNewOrderNotificationEmail(
   const { error } = await new Resend(apiKey).emails.send({
     from,
     to: recipients,
-    subject: `New PrintHub order ${order.orderNumber}`,
+    subject: `New G2 PrintHub order ${order.orderNumber}`,
     html: `<p>A new order has been received.</p><p><strong>Order:</strong> ${safeOrderNumber}<br><strong>Customer:</strong> ${safeCustomerName} (${safeCustomerEmail})<br><strong>Total:</strong> ₹${escapeHtml(order.total.toString())}</p><ul>${itemLines}</ul><p><a href="${escapeHtml(orderUrl.toString())}">View order in admin</a></p>`,
     text: `A new order has been received.\nOrder: ${order.orderNumber}\nCustomer: ${order.customerName} (${order.customerEmail})\nTotal: INR ${order.total.toString()}\n${textItems}\nView order in admin: ${orderUrl.toString()}`,
   });

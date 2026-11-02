@@ -292,7 +292,7 @@ export default function SupportPanel() {
               >
                 <strong>
                   {reply.authorRole === "ADMIN"
-                    ? "PrintHub Support"
+                    ? "G2 PrintHub Support"
                     : reply.authorName}
                 </strong>
                 <p>{reply.message}</p>

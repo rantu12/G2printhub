@@ -2318,6 +2318,7 @@ export const StoreSettingsScalarFieldEnum = {
   storeAddress: 'storeAddress',
   supportEmail: 'supportEmail',
   supportPhone: 'supportPhone',
+  whatsappNumber: 'whatsappNumber',
   currency: 'currency',
   timeZone: 'timeZone',
   defaultOrderStatus: 'defaultOrderStatus',
@@ -2333,6 +2334,14 @@ export const StoreSettingsScalarFieldEnum = {
   homepageSaleEnabled: 'homepageSaleEnabled',
   homepageOffer: 'homepageOffer',
   homepageImage: 'homepageImage',
+  invoiceTitle: 'invoiceTitle',
+  invoiceTagline: 'invoiceTagline',
+  invoiceSellerName: 'invoiceSellerName',
+  invoiceGstin: 'invoiceGstin',
+  invoicePan: 'invoicePan',
+  invoiceAddress: 'invoiceAddress',
+  invoiceContact: 'invoiceContact',
+  invoiceReturnPolicy: 'invoiceReturnPolicy',
   updatedAt: 'updatedAt'
 } as const
 

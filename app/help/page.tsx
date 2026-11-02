@@ -48,7 +48,7 @@ const faqs = [
   },
   {
     category: "Delivery",
-    question: "Where does PrintHub deliver?",
+    question: "Where does G2 PrintHub deliver?",
     answer:
       "Delivery options and address requirements are shown during checkout. Enter your complete delivery address to place an order.",
   },

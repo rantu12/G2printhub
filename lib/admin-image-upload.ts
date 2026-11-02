@@ -2,6 +2,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { put } from "@vercel/blob";
 
 const maxFileSize = 5 * 1024 * 1024;
 
@@ -49,14 +50,17 @@ type ImageUploadResult =
   | { success: true; image: string }
   | {
       success: false;
-      status: 400 | 500;
+      status: 400 | 500 | 503;
       message: string;
     };
 
-export async function saveUploadedImage(
-  file: FormDataEntryValue | null,
-  folder: ImageFolder
-): Promise<ImageUploadResult> {
+type ValidatedImage =
+  | { success: true; file: File; bytes: Uint8Array; extension: string }
+  | Extract<ImageUploadResult, { success: false }>;
+
+async function validateImage(
+  file: FormDataEntryValue | null
+): Promise<ValidatedImage> {
   if (!(file instanceof File)) {
     return {
       success: false,
@@ -93,7 +97,22 @@ export async function saveUploadedImage(
     };
   }
 
-  const filename = `${randomUUID()}.${imageType.extension}`;
+  return {
+    success: true,
+    file,
+    bytes: imageBytes,
+    extension: imageType.extension,
+  };
+}
+
+export async function saveUploadedImage(
+  file: FormDataEntryValue | null,
+  folder: ImageFolder
+): Promise<ImageUploadResult> {
+  const validatedImage = await validateImage(file);
+  if (!validatedImage.success) return validatedImage;
+
+  const filename = `${randomUUID()}.${validatedImage.extension}`;
   const relativePath = path.posix.join("uploads", folder, filename);
   const uploadDirectory = path.join(
     process.cwd(),
@@ -105,7 +124,7 @@ export async function saveUploadedImage(
 
   try {
     await mkdir(uploadDirectory, { recursive: true });
-    await writeFile(destination, imageBytes, { flag: "wx" });
+    await writeFile(destination, validatedImage.bytes, { flag: "wx" });
 
     return {
       success: true,
@@ -124,9 +143,31 @@ export async function saveUploadedImage(
 
 export async function saveAdminImage(
   file: FormDataEntryValue | null,
-  folder: "categories" | "homepage" | "custom-print"
+  folder: "categories" | "homepage" | "custom-print" | "site-identity"
 ) {
-  return saveUploadedImage(file, folder);
+  const validatedImage = await validateImage(file);
+  if (!validatedImage.success) return validatedImage;
+
+  if (!process.env.BLOB_READ_WRITE_TOKEN?.trim()) {
+    return {
+      success: false as const,
+      status: 503 as const,
+      message:
+        "Image storage is not configured. Set up Vercel Blob for this environment.",
+    };
+  }
+
+  const filename = `${folder}/${randomUUID()}.${validatedImage.extension}`;
+  const blob = await put(filename, validatedImage.file, {
+    access: "public",
+    addRandomSuffix: false,
+    contentType: validatedImage.file.type,
+  });
+
+  return {
+    success: true as const,
+    image: blob.url,
+  };
 }
 
 const max3DModelSize = 20 * 1024 * 1024;

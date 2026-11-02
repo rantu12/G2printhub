@@ -1,8 +1,6 @@
-﻿require("dotenv").config();
-
-const { Client } = require("pg");
-
 async function main() {
+  await import("dotenv/config");
+  const { Client } = await import("pg");
   const client = new Client({
     connectionString: process.env.DATABASE_URL,
   });

@@ -460,8 +460,8 @@ export default function AddProductPage() {
 
           <p>
             {isEditing
-              ? "Update product details in your PrintHub store."
-              : "Create and publish a new product in your PrintHub store."}
+              ? "Update product details in your G2 PrintHub store."
+              : "Create and publish a new product in your G2 PrintHub store."}
           </p>
         </div>
 

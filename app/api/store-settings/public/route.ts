@@ -14,6 +14,7 @@ export async function GET() {
           storeAddress: settings.storeAddress,
           supportEmail: settings.supportEmail,
           supportPhone: settings.supportPhone,
+          whatsappNumber: settings.whatsappNumber,
           currency: settings.currency,
           registrationEnabled: settings.registrationEnabled,
           passwordLoginEnabled: settings.passwordLoginEnabled,
