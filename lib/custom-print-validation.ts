@@ -1,4 +1,5 @@
 import type { Prisma } from "@/app/generated/prisma/client";
+import { isNeonModelObjectKey } from "@/lib/neon-object-storage";
 
 type JsonValue = Prisma.InputJsonValue;
 type Validation<T> =
@@ -282,6 +283,9 @@ function parsePrintAreas(value: unknown): Validation<JsonValue> {
 function validModelUrl(value: unknown): value is string {
   if (typeof value !== "string" || value.length > 2048) {
     return false;
+  }
+  if (isNeonModelObjectKey(value)) {
+    return true;
   }
 
   // Prefer a locally uploaded GLB model.

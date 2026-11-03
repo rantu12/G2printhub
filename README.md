@@ -8,6 +8,8 @@ Keep `.env` private and never commit or share its credentials.
 Required server-side environment variables:
 
 - `DATABASE_URL`: PostgreSQL connection string.
+- `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_ENDPOINT_URL_S3`, and
+  `AWS_REGION`: credentials and endpoint for Neon Object Storage model uploads.
 - `BLOB_READ_WRITE_TOKEN`: Vercel Blob token required for Admin image uploads, including the site logo.
 - `RESEND_API_KEY`: Resend API key used only to send verification messages.
 - `EMAIL_FROM`: sender address configured and verified with Resend.
@@ -41,6 +43,22 @@ is not disabled by customer login settings. COD minimum/maximum amounts and an
 optional fee are recalculated and enforced server-side when orders are placed.
 The current checkout currency is INR only. Email delivery uses Resend; SMTP,
 SMS, and third-party shipping APIs are not implemented.
+
+GLB 3D models are uploaded directly from the Admin browser to the private Neon
+Object Storage bucket using short-lived signed URLs. The app stores only the
+object key in product/model records and issues temporary signed read URLs for
+the admin and customer 3D previews. `neon.ts` declares the existing
+`printhub-uploads` bucket as private; applying that configuration is a separate
+Neon account action and is not run as part of local preparation. Locally, set
+`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_ENDPOINT_URL_S3`, and
+`AWS_REGION` from the intended Neon branch. In Vercel, add them to the server
+environment without exposing them as `NEXT_PUBLIC_*` values.
+
+Before browser uploads and 3D previews can work, configure the bucket CORS
+policy to allow the exact local and production site origins, `PUT` and `GET`
+methods, and the `Content-Type` request header. Do not use a wildcard origin
+for this private bucket. The bucket policy is not changed automatically by this
+app.
 
 ### Email and Google setup
 

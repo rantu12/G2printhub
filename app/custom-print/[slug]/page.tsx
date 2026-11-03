@@ -45,6 +45,7 @@ type Product = {
   salePrice: string | null;
   stock: number;
   modelUrl: string | null;
+  modelStorage?: "neon" | "legacy" | null;
   printAreas: unknown;
   customizationSettings?: {
     allowText?: boolean;
@@ -88,6 +89,8 @@ export default function CustomPrintProductPage() {
   const [quantity, setQuantity] = useState(1);
   const [editorOpen, setEditorOpen] = useState(false);
   const [view3DOpen, setView3DOpen] = useState(false);
+  const [modelPreviewUrl, setModelPreviewUrl] = useState("");
+  const [loading3DPreview, setLoading3DPreview] = useState(false);
   const [selectedAreaId, setSelectedAreaId] = useState("");
   const [sourceFile, setSourceFile] = useState<File | null>(null);
   const [sourceUrl, setSourceUrl] = useState("");
@@ -272,6 +275,34 @@ export default function CustomPrintProductPage() {
     }
   }
 
+  async function open3DPreview() {
+    if (!product || !artwork || !compositeUrl) return;
+    setLoading3DPreview(true);
+    setMessage("");
+    try {
+      let previewUrl = product.modelUrl;
+      if (product.modelStorage === "neon") {
+        const response = await fetch(
+          `/api/custom-print/products/${encodeURIComponent(product.slug)}/model-preview`,
+          { cache: "no-store" }
+        );
+        const data = await response.json();
+        if (!response.ok || !data.success || typeof data.modelUrl !== "string") {
+          throw new Error(data.message || "3D preview could not be loaded.");
+        }
+        previewUrl = data.modelUrl;
+      }
+      if (!previewUrl) throw new Error("No 3D model is configured for this product.");
+      setModelPreviewUrl(previewUrl);
+      setView3DOpen(true);
+    } catch (previewError) {
+      setMessage(previewError instanceof Error ? previewError.message : "3D preview could not be loaded.");
+      setMessageIsError(true);
+    } finally {
+      setLoading3DPreview(false);
+    }
+  }
+
   function addProductToCart(goToCheckout = false) {
     if (!product || !artwork) {
       setMessage("Upload and save your design before adding this product to the cart.");
@@ -351,7 +382,7 @@ export default function CustomPrintProductPage() {
                 <button type="button" disabled={!areas.length} onClick={() => setEditorOpen(true)} className="rounded-lg bg-blue-700 px-4 py-3 font-semibold text-white disabled:opacity-50">
                   {artwork ? "Edit your design" : "Upload image & personalize"}
                 </button>
-                {product.modelUrl && <button type="button" disabled={!artwork || !compositeUrl} onClick={() => setView3DOpen(true)} className="rounded-lg border border-blue-700 px-4 py-3 font-semibold text-blue-800 disabled:opacity-50">View design in 3D · 360°</button>}
+                {(product.modelUrl || product.modelStorage === "neon") && <button type="button" disabled={!artwork || !compositeUrl || loading3DPreview} onClick={() => void open3DPreview()} className="rounded-lg border border-blue-700 px-4 py-3 font-semibold text-blue-800 disabled:opacity-50">{loading3DPreview ? "Loading 3D preview..." : "View design in 3D · 360°"}</button>}
               </div>
               {!areas.length && <p className="mt-3 text-sm text-amber-800">Print areas are not configured for this product yet.</p>}
               {artwork && <p className="mt-3 text-sm font-medium text-green-800">Design saved: {artwork.fileName || "custom artwork"}</p>}
@@ -421,13 +452,13 @@ export default function CustomPrintProductPage() {
         </section>
       </div>}
 
-      {view3DOpen && selectedArea && product.modelUrl && <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-3 md:p-8" role="dialog" aria-modal="true" aria-label="360 degree product preview">
+      {view3DOpen && selectedArea && modelPreviewUrl && <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-3 md:p-8" role="dialog" aria-modal="true" aria-label="360 degree product preview">
         <section className="w-full max-w-5xl rounded-2xl bg-white p-4 shadow-2xl">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div><h2 className="text-xl font-bold">360° design preview</h2><p className="text-sm text-slate-500">Drag to rotate · Scroll to zoom</p></div>
             <button type="button" onClick={() => setView3DOpen(false)} aria-label="Close 3D preview" className="rounded-full px-3 py-1 text-2xl text-slate-500">×</button>
           </div>
-          <CustomPrint3DViewer key={product.id} modelUrl={product.modelUrl} height={Math.min(650, typeof window === "undefined" ? 600 : window.innerHeight - 160)} autoRotate
+          <CustomPrint3DViewer key={product.id} modelUrl={modelPreviewUrl} height={Math.min(650, typeof window === "undefined" ? 600 : window.innerHeight - 160)} autoRotate
             printArea={selectedArea}
             designSettings={{ imageUrl: compositeUrl }} />
         </section>

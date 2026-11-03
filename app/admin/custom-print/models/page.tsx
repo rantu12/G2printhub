@@ -109,11 +109,29 @@ export default function CustomPrintModelsPage() {
     setBusy(true);
     setMessage("");
     try {
-      const upload = new FormData();
-      upload.append("model", modelFile);
-      const uploadResponse = await fetchAdmin("/api/admin/custom-print/products/upload-model", { method: "POST", body: upload });
+      const uploadResponse = await fetchAdmin("/api/admin/custom-print/products/upload-model", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileName: modelFile.name, fileSize: modelFile.size }),
+      });
       const uploadData = await uploadResponse.json();
-      if (!uploadResponse.ok || !uploadData.success) throw new Error(uploadData.message || "Model upload failed.");
+      if (
+        !uploadResponse.ok ||
+        !uploadData.success ||
+        typeof uploadData.uploadUrl !== "string" ||
+        typeof uploadData.modelUrl !== "string"
+      ) {
+        throw new Error(uploadData.message || "Model upload could not be prepared.");
+      }
+
+      const storageResponse = await fetch(uploadData.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "model/gltf-binary" },
+        body: modelFile,
+      });
+      if (!storageResponse.ok) {
+        throw new Error("The GLB could not be uploaded to Neon Object Storage.");
+      }
 
       const response = await fetchAdmin("/api/admin/custom-print/models", {
         method: "POST",

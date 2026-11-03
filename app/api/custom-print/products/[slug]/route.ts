@@ -1,6 +1,7 @@
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isNeonModelObjectKey } from "@/lib/neon-object-storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -72,13 +73,20 @@ export async function GET(
       typeof settings.modelUrl === "string"
         ? settings.modelUrl
         : null;
+    const modelUrl = model?.modelUrl ?? savedModelUrl;
+    const modelStorage = isNeonModelObjectKey(modelUrl)
+      ? "neon"
+      : modelUrl
+        ? "legacy"
+        : null;
 
     return NextResponse.json({
       success: true,
       product: {
         ...product,
         printAreas: model?.printAreas ?? product.printAreas ?? [],
-        modelUrl: model?.modelUrl ?? savedModelUrl,
+        modelUrl: modelStorage === "neon" ? null : modelUrl,
+        modelStorage,
       },
     });
   } catch (error) {

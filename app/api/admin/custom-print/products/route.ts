@@ -3,6 +3,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import type { Prisma } from "@/app/generated/prisma/client";
+import {
+  createNeonModelPreviewUrl,
+  isNeonModelObjectKey,
+  verifyNeonModelObject,
+} from "@/lib/neon-object-storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,6 +26,12 @@ function handleError(error: unknown) {
     return NextResponse.json(
       { success: false, message: "Admin access required." },
       { status: 403 }
+    );
+  }
+  if (message === "NEON_OBJECT_STORAGE_ENV_MISSING") {
+    return NextResponse.json(
+      { success: false, message: "Neon Object Storage is not configured for this environment." },
+      { status: 503 }
     );
   }
 
@@ -63,7 +74,23 @@ export async function GET() {
       orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
     });
 
-    return NextResponse.json({ success: true, products });
+    const productsWithPreviewUrls = await Promise.all(
+      products.map(async (product) => {
+        const settings = isObject(product.customizationSettings)
+          ? product.customizationSettings
+          : null;
+        const modelUrl = settings?.modelUrl;
+        if (typeof modelUrl !== "string" || !isNeonModelObjectKey(modelUrl)) {
+          return product;
+        }
+        return {
+          ...product,
+          modelPreviewUrl: await createNeonModelPreviewUrl(modelUrl),
+        };
+      })
+    );
+
+    return NextResponse.json({ success: true, products: productsWithPreviewUrls });
   } catch (error) {
     return handleError(error);
   }
@@ -468,6 +495,23 @@ export async function PUT(request: Request) {
           { success: false, message: "Invalid customization settings." },
           { status: 400 }
         );
+      }
+      if (
+        isObject(body.customizationSettings) &&
+        typeof body.customizationSettings.modelUrl === "string" &&
+        isNeonModelObjectKey(body.customizationSettings.modelUrl)
+      ) {
+        try {
+          await verifyNeonModelObject(body.customizationSettings.modelUrl);
+        } catch (error) {
+          if (error instanceof Error && error.message === "INVALID_NEON_MODEL_FILE") {
+            return NextResponse.json(
+              { success: false, message: "The uploaded file is not a valid GLB model." },
+              { status: 400 }
+            );
+          }
+          throw error;
+        }
       }
       data.customizationSettings = body.customizationSettings;
     }

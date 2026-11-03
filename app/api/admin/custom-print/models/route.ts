@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  createNeonModelPreviewUrl,
+  getModelPreviewUrl,
+  isNeonModelObjectKey,
+  verifyNeonModelObject,
+} from "@/lib/neon-object-storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,6 +34,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function validModelUrl(value: unknown): value is string {
   if (typeof value !== "string" || value.length > 2048) return false;
+  if (isNeonModelObjectKey(value)) return true;
   if (value.startsWith("/uploads/custom-print/models/")) {
     return /\.glb$/i.test(value) && !value.includes("\\") && !value.includes("..");
   }
@@ -133,8 +140,23 @@ function adminError(error: unknown) {
   if (message === "FORBIDDEN") {
     return NextResponse.json({ success: false, message: "Admin access required." }, { status: 403 });
   }
+  if (message === "NEON_OBJECT_STORAGE_ENV_MISSING") {
+    return NextResponse.json(
+      { success: false, message: "Neon Object Storage is not configured for this environment." },
+      { status: 503 }
+    );
+  }
   console.error("Custom Print model API error:", error);
   return NextResponse.json({ success: false, message: "Unable to process 3D models." }, { status: 500 });
+}
+
+async function modelForResponse<T extends { modelUrl: string }>(model: T) {
+  return {
+    ...model,
+    modelUrl: isNeonModelObjectKey(model.modelUrl)
+      ? await createNeonModelPreviewUrl(model.modelUrl)
+      : await getModelPreviewUrl(model.modelUrl),
+  };
 }
 
 export async function GET() {
@@ -144,7 +166,8 @@ export async function GET() {
       orderBy: [{ modelType: "asc" }, { createdAt: "desc" }],
       include: { _count: { select: { products: true } } },
     });
-    return NextResponse.json({ success: true, models });
+    const modelsWithPreviewUrls = await Promise.all(models.map(modelForResponse));
+    return NextResponse.json({ success: true, models: modelsWithPreviewUrls });
   } catch (error) {
     return adminError(error);
   }
@@ -170,6 +193,16 @@ export async function POST(request: Request) {
     if (!printAreas) {
       return NextResponse.json({ success: false, message: "Print areas contain invalid or duplicate values." }, { status: 400 });
     }
+    if (isNeonModelObjectKey(body.modelUrl)) {
+      try {
+        await verifyNeonModelObject(body.modelUrl);
+      } catch (error) {
+        if (error instanceof Error && error.message === "INVALID_NEON_MODEL_FILE") {
+          return NextResponse.json({ success: false, message: "The uploaded file is not a valid GLB model." }, { status: 400 });
+        }
+        throw error;
+      }
+    }
 
     const model = await prisma.customPrintModel.create({
       data: {
@@ -180,7 +213,7 @@ export async function POST(request: Request) {
         active: body.active !== false,
       },
     });
-    return NextResponse.json({ success: true, model }, { status: 201 });
+    return NextResponse.json({ success: true, model: await modelForResponse(model) }, { status: 201 });
   } catch (error) {
     return adminError(error);
   }
@@ -209,6 +242,16 @@ export async function PATCH(request: Request) {
     if (body.printAreas !== undefined && !printAreas) {
       return NextResponse.json({ success: false, message: "Print areas contain invalid or duplicate values." }, { status: 400 });
     }
+    if (typeof body.modelUrl === "string" && isNeonModelObjectKey(body.modelUrl)) {
+      try {
+        await verifyNeonModelObject(body.modelUrl);
+      } catch (error) {
+        if (error instanceof Error && error.message === "INVALID_NEON_MODEL_FILE") {
+          return NextResponse.json({ success: false, message: "The uploaded file is not a valid GLB model." }, { status: 400 });
+        }
+        throw error;
+      }
+    }
     const model = await prisma.customPrintModel.update({
       where: { id: current.id },
       data: {
@@ -219,7 +262,7 @@ export async function PATCH(request: Request) {
         ...(typeof body.active === "boolean" ? { active: body.active } : {}),
       },
     });
-    return NextResponse.json({ success: true, model });
+    return NextResponse.json({ success: true, model: await modelForResponse(model) });
   } catch (error) {
     return adminError(error);
   }

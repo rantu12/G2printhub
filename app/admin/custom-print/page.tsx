@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
+import { fetchAdmin } from "@/lib/admin-fetch";
 
 const CustomPrint3DViewer = dynamic(
   () => import("@/components/custom-print/CustomPrint3DViewer"),
@@ -32,6 +33,7 @@ type Product = {
   slug: string;
   printAreas?: unknown;
   customizationSettings?: unknown;
+  modelPreviewUrl?: string;
 };
 
 function getModelUrl(product?: Product): string {
@@ -39,7 +41,7 @@ function getModelUrl(product?: Product): string {
   const settings = product.customizationSettings;
   if (typeof settings !== "object" || settings === null || Array.isArray(settings)) return "";
   const modelUrl = (settings as Record<string, unknown>).modelUrl;
-  return typeof modelUrl === "string" ? modelUrl : "";
+  return product.modelPreviewUrl ?? (typeof modelUrl === "string" ? modelUrl : "");
 }
 
 function readSavedArea(product?: Product): PrintArea | null {
@@ -282,6 +284,7 @@ export default function AdminCustomPrintPage() {
   const [saving, setSaving] = useState(false);
   const [modelFile, setModelFile] = useState<File | null>(null);
   const [uploadingModel, setUploadingModel] = useState(false);
+  const [modelPreviewUrls, setModelPreviewUrls] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -311,7 +314,9 @@ export default function AdminCustomPrintPage() {
     () => products.find((product) => product.id === productId),
     [products, productId],
   );
-  const modelUrl = getModelUrl(selectedProduct);
+  const modelUrl =
+    (selectedProduct ? modelPreviewUrls[selectedProduct.id] : undefined) ??
+    getModelUrl(selectedProduct);
 
   useEffect(() => {
     const saved = readSavedArea(selectedProduct);
@@ -350,15 +355,29 @@ export default function AdminCustomPrintPage() {
     try {
       setUploadingModel(true);
       setMessage("");
-      const formData = new FormData();
-      formData.append("model", modelFile);
-      const uploadResponse = await fetch("/api/admin/custom-print/products/upload-model", {
+      const uploadResponse = await fetchAdmin("/api/admin/custom-print/products/upload-model", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileName: modelFile.name, fileSize: modelFile.size }),
       });
       const uploadData = await uploadResponse.json();
-      if (!uploadResponse.ok || !uploadData.success || !uploadData.modelUrl) {
-        throw new Error(uploadData.message || "GLB upload failed.");
+      if (
+        !uploadResponse.ok ||
+        !uploadData.success ||
+        typeof uploadData.modelUrl !== "string" ||
+        typeof uploadData.uploadUrl !== "string" ||
+        typeof uploadData.previewUrl !== "string"
+      ) {
+        throw new Error(uploadData.message || "GLB upload could not be prepared.");
+      }
+
+      const storageResponse = await fetch(uploadData.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "model/gltf-binary" },
+        body: modelFile,
+      });
+      if (!storageResponse.ok) {
+        throw new Error("The GLB could not be uploaded to Neon Object Storage.");
       }
 
       const oldSettings =
@@ -382,6 +401,7 @@ export default function AdminCustomPrintPage() {
       setProducts((current) => current.map((product) =>
         product.id === productId ? { ...product, customizationSettings: newSettings } : product
       ));
+      setModelPreviewUrls((current) => ({ ...current, [productId]: uploadData.previewUrl }));
       setModelFile(null);
       setMessage("GLB model upload ও product settings save সফল হয়েছে।");
     } catch (error) {
