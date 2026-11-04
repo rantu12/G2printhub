@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import {
   readPrivateArtwork,
   removePrivateArtwork,
-} from "@/lib/local-private-artwork";
+} from "@/lib/private-artwork-storage";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -68,15 +68,7 @@ export async function GET(request: Request, { params }: RouteContext) {
       );
     }
 
-    let bytes: Buffer;
-    try {
-      bytes = await readPrivateArtwork(artwork.storageKey);
-    } catch {
-      return NextResponse.json(
-        { success: false, message: "Artwork file not found in local storage." },
-        { status: 404 }
-      );
-    }
+    const bytes = await readPrivateArtwork(artwork.storageKey);
 
     const safeFileName = artwork.fileName.replace(/["\\\r\n]/g, "_");
     const inline = new URL(request.url).searchParams.get("inline") === "1";

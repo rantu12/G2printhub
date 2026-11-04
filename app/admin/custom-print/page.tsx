@@ -291,7 +291,7 @@ export default function AdminCustomPrintPage() {
     async function loadProducts() {
       try {
         setLoading(true);
-        const response = await fetch("/api/admin/custom-print/products", { cache: "no-store" });
+        const response = await fetchAdmin("/api/admin/custom-print/products", { cache: "no-store" });
         const data = await response.json();
         if (!response.ok || !data.success) throw new Error(data.message || "Products load করা যায়নি।");
         const items: Product[] = Array.isArray(data.products) ? data.products : [];
@@ -388,7 +388,7 @@ export default function AdminCustomPrintPage() {
           : {};
       const newSettings = { ...oldSettings, modelUrl: uploadData.modelUrl };
 
-      const saveResponse = await fetch("/api/admin/custom-print/products", {
+      const saveResponse = await fetchAdmin("/api/admin/custom-print/products", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: productId, customizationSettings: newSettings }),

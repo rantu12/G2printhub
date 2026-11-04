@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import {
   readPrivateArtwork,
   removePrivateArtwork,
-} from "@/lib/local-private-artwork";
+} from "@/lib/private-artwork-storage";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -115,15 +115,7 @@ export async function GET(request: Request, { params }: RouteContext) {
       );
     }
 
-    let bytes: Buffer;
-    try {
-      bytes = await readPrivateArtwork(selectedDownload.storageKey);
-    } catch {
-      return NextResponse.json(
-        { success: false, message: "Custom Print artwork file not found in local storage." },
-        { status: 404 }
-      );
-    }
+    const bytes = await readPrivateArtwork(selectedDownload.storageKey);
 
     const safeFileName = selectedDownload.fileName
       .replace(/["\\/\r\n]/g, "_")

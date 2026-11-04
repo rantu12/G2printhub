@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import {
   removePrivateArtwork,
   savePrivateArtwork,
-} from "@/lib/local-private-artwork";
+} from "@/lib/private-artwork-storage";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/app/generated/prisma/client";
 

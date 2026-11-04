@@ -11,6 +11,7 @@ Required server-side environment variables:
 - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_ENDPOINT_URL_S3`, and
   `AWS_REGION`: credentials and endpoint for Neon Object Storage model uploads.
 - `BLOB_READ_WRITE_TOKEN`: Vercel Blob token required for Admin image uploads, including the site logo.
+- `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_ARTWORK_BUCKET`: server-only Supabase Storage configuration for private customer artwork. Create the bucket as **private**; never expose the service-role key to browser code.
 - `RESEND_API_KEY`: Resend API key used only to send verification messages.
 - `EMAIL_FROM`: sender address configured and verified with Resend.
 - `APP_URL`: the canonical site origin, such as `http://localhost:3000` locally.
@@ -43,6 +44,14 @@ is not disabled by customer login settings. COD minimum/maximum amounts and an
 optional fee are recalculated and enforced server-side when orders are placed.
 The current checkout currency is INR only. Email delivery uses Resend; SMTP,
 SMS, and third-party shipping APIs are not implemented.
+
+Private artwork is stored in the private Supabase bucket configured by
+`SUPABASE_ARTWORK_BUCKET` (default: `customer-artwork`). If you are migrating
+existing files from `private-uploads/artwork`, first configure the Supabase
+environment variables and create the private bucket. Review the files with
+`npx tsx scripts/copy-private-artwork-to-supabase.ts` (dry run); copying is
+explicitly opt-in with `--upload`. The script preserves each existing storage
+key and never deletes local files or changes database records.
 
 GLB 3D models are uploaded directly from the Admin browser to the private Neon
 Object Storage bucket using short-lived signed URLs. The app stores only the
