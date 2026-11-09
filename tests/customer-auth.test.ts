@@ -197,7 +197,7 @@ test("email verification configuration requires credentials and an app URL", () 
   assert.equal(
     isEmailVerificationConfiguredWithValues(
       "resend-key",
-      "G2 PrintHub <support@example.com>",
+      "PrintHub <support@example.com>",
       "https://example.com"
     ),
     true

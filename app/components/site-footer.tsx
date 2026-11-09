@@ -10,21 +10,13 @@ type FooterMenuItem = {
   href: string;
 };
 
-type SiteFooterProps = {
-  initialSiteName: string;
-  initialSupportEmail: string;
-  initialSupportPhone: string;
-  initialStoreAddress: string;
-};
-
-export default function SiteFooter({
-  initialSiteName,
-  initialSupportEmail,
-  initialSupportPhone,
-  initialStoreAddress,
-}: SiteFooterProps) {
+export default function SiteFooter() {
   const pathname = usePathname();
   const [items, setItems] = useState<FooterMenuItem[]>([]);
+  const [siteName, setSiteName] = useState("PrintHub");
+  const [supportEmail, setSupportEmail] = useState("");
+  const [supportPhone, setSupportPhone] = useState("");
+  const [storeAddress, setStoreAddress] = useState("");
 
   useEffect(() => {
     if (
@@ -53,6 +45,28 @@ export default function SiteFooter({
     loadMenu();
   }, [pathname]);
 
+  useEffect(() => {
+    let active = true;
+    fetch("/api/store-settings/public", { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok || !data.success || !data.settings) {
+          throw new Error(data.message || "Unable to load store identity.");
+        }
+        if (!active) return;
+        setSiteName(data.settings.siteName || "PrintHub");
+        setSupportEmail(data.settings.supportEmail || "");
+        setSupportPhone(data.settings.supportPhone || "");
+        setStoreAddress(data.settings.storeAddress || "");
+      })
+      .catch((error: unknown) => {
+        console.error("Store footer identity load error:", error);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   if (
     pathname.startsWith("/admin") ||
     pathname === "/login" ||
@@ -65,7 +79,7 @@ export default function SiteFooter({
     <footer className="site-footer">
       <div className="site-footer-inner">
         <Link href="/" className="site-footer-brand">
-          {initialSiteName}
+          {siteName}
         </Link>
         <nav className="site-footer-menu" aria-label="Footer menu">
           {items
@@ -78,15 +92,11 @@ export default function SiteFooter({
           <Link href="/help">Help Center</Link>
           <Link href="/support">Support</Link>
         </nav>
-        {(initialSupportEmail || initialSupportPhone || initialStoreAddress) && (
+        {(supportEmail || supportPhone || storeAddress) && (
           <div className="site-footer-contact">
-            {initialStoreAddress && <span>{initialStoreAddress}</span>}
-            {initialSupportEmail && (
-              <a href={`mailto:${initialSupportEmail}`}>{initialSupportEmail}</a>
-            )}
-            {initialSupportPhone && (
-              <a href={`tel:${initialSupportPhone}`}>{initialSupportPhone}</a>
-            )}
+            {storeAddress && <span>{storeAddress}</span>}
+            {supportEmail && <a href={`mailto:${supportEmail}`}>{supportEmail}</a>}
+            {supportPhone && <a href={`tel:${supportPhone}`}>{supportPhone}</a>}
           </div>
         )}
       </div>

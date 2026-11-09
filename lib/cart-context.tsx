@@ -161,7 +161,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }
       }
     } catch (error) {
-      console.error("Unable to restore G2 PrintHub cart:", error);
+      console.error("Unable to restore PrintHub cart:", error);
     } finally {
       setReady(true);
     }
@@ -173,7 +173,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
     } catch (error) {
-      console.error("Unable to save G2 PrintHub cart:", error);
+      console.error("Unable to save PrintHub cart:", error);
     }
   }, [items, ready]);
 

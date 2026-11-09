@@ -660,7 +660,7 @@ export default function CheckoutPage() {
             Order placed successfully!
           </h1>
           <p style={{ color: "#4b5563", lineHeight: 1.7 }}>
-            Your order has been submitted to G2 PrintHub.
+            Your order has been submitted to PrintHub.
           </p>
 
           <div style={orderBoxStyle}>

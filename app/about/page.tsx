@@ -3,9 +3,9 @@ import InfoPage from "@/app/components/info-page";
 export default function AboutPage() {
   return (
     <InfoPage
-      eyebrow="ABOUT G2 PRINTHUB"
+      eyebrow="ABOUT PRINTHUB"
       title="Prints made personal."
-      introduction="G2 PrintHub helps turn your ideas into custom prints for everyday use, businesses, gifts, and special moments."
+      introduction="PrintHub helps turn your ideas into custom prints for everyday use, businesses, gifts, and special moments."
       sections={[
         {
           title: "What we do",
@@ -18,7 +18,7 @@ export default function AboutPage() {
           title: "Our approach",
           paragraphs: [
             "Every order starts with your idea. We focus on making the process clear and helping you find a print that fits what you have in mind.",
-            "Browse the products available on G2 PrintHub to see current options and details.",
+            "Browse the products available on PrintHub to see current options and details.",
           ],
         },
       ]}

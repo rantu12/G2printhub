@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCustomPrintArtworkDownloads } from "@/lib/custom-print-artwork-downloads";
-import { isInvoiceDownloadAvailable } from "@/lib/invoice-eligibility";
 
 function formatPrice(value: number) {
   return `₹${value.toFixed(2)}`;
@@ -82,7 +81,7 @@ export default async function OrdersPage() {
           <div>
             <span className="account-eyebrow">ORDER HISTORY</span>
             <h1>My Orders</h1>
-            <p>Track the status and details of your G2 PrintHub orders.</p>
+            <p>Track the status and details of your PrintHub orders.</p>
           </div>
         </div>
 
@@ -117,17 +116,6 @@ export default async function OrdersPage() {
                     <span className="account-order-payment">
                       {order.paymentMethod} · {order.paymentStatus}
                     </span>
-                    {isInvoiceDownloadAvailable(
-                      order.paymentStatus,
-                      order.status
-                    ) && (
-                      <Link
-                        href={`/orders/${encodeURIComponent(order.id)}/invoice`}
-                        className="account-order-artwork-link"
-                      >
-                        View / download invoice (PDF)
-                      </Link>
-                    )}
                   </div>
                 </header>
 

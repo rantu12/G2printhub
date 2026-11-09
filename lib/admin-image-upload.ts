@@ -1,7 +1,4 @@
-
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { put } from "@vercel/blob";
 
 const maxFileSize = 5 * 1024 * 1024;
@@ -37,30 +34,34 @@ const imageTypes = {
   },
 } satisfies Record<
   string,
-  { extension: string; matches: (bytes: Uint8Array) => boolean }
+  {
+    extension: string;
+    matches: (bytes: Uint8Array) => boolean;
+  }
 >;
 
 type ImageFolder =
   | "categories"
   | "homepage"
   | "reviews"
-  | "custom-print";
+  | "custom-print"
+  | "site-identity";
 
 type ImageUploadResult =
-  | { success: true; image: string }
+  | {
+      success: true;
+      image: string;
+    }
   | {
       success: false;
-      status: 400 | 500 | 503;
+      status: 400 | 500;
       message: string;
     };
 
-type ValidatedImage =
-  | { success: true; file: File; bytes: Uint8Array; extension: string }
-  | Extract<ImageUploadResult, { success: false }>;
-
-async function validateImage(
-  file: FormDataEntryValue | null
-): Promise<ValidatedImage> {
+export async function saveUploadedImage(
+  file: FormDataEntryValue | null,
+  folder: ImageFolder
+): Promise<ImageUploadResult> {
   if (!(file instanceof File)) {
     return {
       success: false,
@@ -77,7 +78,8 @@ async function validateImage(
     };
   }
 
-  const imageType = imageTypes[file.type as keyof typeof imageTypes];
+  const imageType =
+    imageTypes[file.type as keyof typeof imageTypes];
 
   if (!imageType) {
     return {
@@ -87,7 +89,9 @@ async function validateImage(
     };
   }
 
-  const imageBytes = new Uint8Array(await file.arrayBuffer());
+  const imageBytes = new Uint8Array(
+    await file.arrayBuffer()
+  );
 
   if (!imageType.matches(imageBytes)) {
     return {
@@ -97,75 +101,34 @@ async function validateImage(
     };
   }
 
-  return {
-    success: true,
-    file,
-    bytes: imageBytes,
-    extension: imageType.extension,
-  };
-}
-
-export async function saveUploadedImage(
-  file: FormDataEntryValue | null,
-  folder: ImageFolder
-): Promise<ImageUploadResult> {
-  const validatedImage = await validateImage(file);
-  if (!validatedImage.success) return validatedImage;
-
-  const filename = `${randomUUID()}.${validatedImage.extension}`;
-  const relativePath = path.posix.join("uploads", folder, filename);
-  const uploadDirectory = path.join(
-    process.cwd(),
-    "public",
-    "uploads",
-    folder
-  );
-  const destination = path.join(uploadDirectory, filename);
+  const filename =
+    `${folder}/${randomUUID()}.${imageType.extension}`;
 
   try {
-    await mkdir(uploadDirectory, { recursive: true });
-    await writeFile(destination, validatedImage.bytes, { flag: "wx" });
+    const blob = await put(filename, Buffer.from(imageBytes), {
+      access: "public",
+      addRandomSuffix: false,
+      contentType: file.type,
+    });
 
     return {
       success: true,
-      image: `/${relativePath}`,
+      image: blob.url,
     };
   } catch (error) {
-    console.error("Local image storage failed:", error);
+    console.error("Vercel Blob image upload failed:", error);
 
     return {
       success: false,
       status: 500,
-      message: "Unable to save image locally. Check the uploads folder permissions.",
+      message: "Image storage failed. Check Vercel Blob configuration.",
     };
   }
 }
 
 export async function saveAdminImage(
   file: FormDataEntryValue | null,
-  folder: "categories" | "homepage" | "custom-print" | "site-identity"
+  folder: ImageFolder
 ) {
-  const validatedImage = await validateImage(file);
-  if (!validatedImage.success) return validatedImage;
-
-  if (!process.env.BLOB_READ_WRITE_TOKEN?.trim()) {
-    return {
-      success: false as const,
-      status: 503 as const,
-      message:
-        "Image storage is not configured. Set up Vercel Blob for this environment.",
-    };
-  }
-
-  const filename = `${folder}/${randomUUID()}.${validatedImage.extension}`;
-  const blob = await put(filename, validatedImage.file, {
-    access: "public",
-    addRandomSuffix: false,
-    contentType: validatedImage.file.type,
-  });
-
-  return {
-    success: true as const,
-    image: blob.url,
-  };
+  return saveUploadedImage(file, folder);
 }

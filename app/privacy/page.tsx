@@ -5,7 +5,7 @@ export default function PrivacyPage() {
     <InfoPage
       eyebrow="YOUR INFORMATION"
       title="Privacy Policy"
-      introduction="This page explains, in general terms, how information provided through G2 PrintHub may be used when you browse or place an order."
+      introduction="This page explains, in general terms, how information provided through PrintHub may be used when you browse or place an order."
       sections={[
         {
           title: "Information you provide",
@@ -30,7 +30,7 @@ export default function PrivacyPage() {
         {
           title: "Your choices",
           paragraphs: [
-            "You may contact G2 PrintHub to ask about or request a correction to information associated with your account or order. Please include enough information for us to identify the relevant account or order. Requests are handled subject to applicable legal and operational requirements.",
+            "You may contact PrintHub to ask about or request a correction to information associated with your account or order. Please include enough information for us to identify the relevant account or order. Requests are handled subject to applicable legal and operational requirements.",
           ],
         },
       ]}

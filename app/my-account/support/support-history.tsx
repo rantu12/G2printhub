@@ -128,7 +128,7 @@ export default function SupportHistory({
                 key={item.id}
               >
                 <strong>
-                  {item.authorRole === "ADMIN" ? "G2 PrintHub Support" : item.authorName}
+                  {item.authorRole === "ADMIN" ? "PrintHub Support" : item.authorName}
                 </strong>
                 <p>{item.message}</p>
                 <time dateTime={item.createdAt}>{formatDate(item.createdAt)}</time>

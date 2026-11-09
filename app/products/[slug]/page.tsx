@@ -921,7 +921,7 @@ export default function ProductDetailsPage() {
 
               <p>
                 {product.description ||
-                  "Create a beautiful custom printed product with G2 PrintHub."}
+                  "Create a beautiful custom printed product with PrintHub."}
               </p>
             </div>
 

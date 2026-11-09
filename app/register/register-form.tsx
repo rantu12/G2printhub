@@ -138,7 +138,7 @@ export default function RegisterForm() {
             <span className="auth-badge">GET STARTED</span>
             <h1>Create your account</h1>
             <p>
-              Join G2 PrintHub and manage your custom printing orders from one
+              Join PrintHub and manage your custom printing orders from one
               place.
             </p>
           </div>
@@ -316,7 +316,7 @@ export default function RegisterForm() {
         </div>
 
         <Link href="/" className="back-home">
-          ← Back to G2 PrintHub
+          ← Back to PrintHub
         </Link>
       </section>
     </main>

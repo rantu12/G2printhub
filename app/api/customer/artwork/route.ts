@@ -239,8 +239,8 @@ export async function POST(request: Request) {
       }
     }
 
-    const auth = authenticationError(error);
-    if (auth) return auth;
+   const auth = authenticationError(error);
+if (auth) return auth;
 
     console.error("Customer artwork upload error:", error);
     return NextResponse.json(

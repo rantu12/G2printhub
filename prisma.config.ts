@@ -16,11 +16,9 @@ console.log("Prisma database URL configured:", true);
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
-
   migrations: {
     path: "prisma/migrations",
   },
-
   datasource: {
     url: databaseUrl,
   },

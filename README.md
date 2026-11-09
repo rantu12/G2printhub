@@ -1,6 +1,6 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## G2 PrintHub authentication and store setup
+## PrintHub authentication and store setup
 
 Copy `.env.example` to `.env` only if you do not already have an `.env` file.
 Keep `.env` private and never commit or share its credentials.
@@ -10,7 +10,6 @@ Required server-side environment variables:
 - `DATABASE_URL`: PostgreSQL connection string.
 - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_ENDPOINT_URL_S3`, and
   `AWS_REGION`: credentials and endpoint for Neon Object Storage model uploads.
-- `BLOB_READ_WRITE_TOKEN`: Vercel Blob token required for Admin image uploads, including the site logo.
 - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_ARTWORK_BUCKET`: server-only Supabase Storage configuration for private customer artwork. Create the bucket as **private**; never expose the service-role key to browser code.
 - `RESEND_API_KEY`: Resend API key used only to send verification messages.
 - `EMAIL_FROM`: sender address configured and verified with Resend.
@@ -97,10 +96,6 @@ Apply the additive, data-preserving migration to the configured database with
 `npx prisma generate`. The migration marks existing accounts verified to
 preserve their current sign-in access; newly registered password accounts
 must verify their email. Do not run database reset commands.
-
-The site identity settings include an optional WhatsApp contact number. Set it
-under Admin → Settings → Site identity (include the country code) to show the
-floating storefront chat button.
 
 Create or promote the explicitly authorized admin account by setting
 `ADMIN_EMAIL`, `ADMIN_PASSWORD` (at least 12 characters), and optionally

@@ -177,7 +177,7 @@ export default function AdminProductsPage() {
             <h1>Products</h1>
 
             <p>
-              Manage your G2 PrintHub products, pricing, stock and
+              Manage your PrintHub products, pricing, stock and
               availability.
             </p>
           </div>

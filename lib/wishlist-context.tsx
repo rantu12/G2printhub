@@ -71,7 +71,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
         }
       }
     } catch (error) {
-      console.error("Unable to restore G2 PrintHub wishlist:", error);
+      console.error("Unable to restore PrintHub wishlist:", error);
     } finally {
       setReady(true);
     }
@@ -82,7 +82,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
     } catch (error) {
-      console.error("Unable to save G2 PrintHub wishlist:", error);
+      console.error("Unable to save PrintHub wishlist:", error);
     }
   }, [products, ready]);
 

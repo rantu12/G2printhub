@@ -9,34 +9,31 @@ async function main() {
 
   if (!email || !password || password.length < 12) {
     throw new Error(
-      "Set ADMIN_EMAIL and an ADMIN_PASSWORD of at least 12 characters before running this script."
+      "Set ADMIN_EMAIL and ADMIN_PASSWORD (minimum 12 characters)."
     );
   }
 
   const passwordHash = await hashPassword(password);
 
   const existingUser = await prisma.user.findUnique({
-    where: {
-      email,
-    },
+    where: { email },
   });
 
   if (existingUser) {
     const user = await prisma.user.update({
-      where: {
-        id: existingUser.id,
-      },
+      where: { id: existingUser.id },
       data: {
         name,
         passwordHash,
         role: "ADMIN",
+        isBlocked: false,
         emailVerifiedAt: existingUser.emailVerifiedAt ?? new Date(),
       },
     });
 
     console.log("Admin account updated successfully.");
+    console.log("Email:", user.email);
     console.log("Role:", user.role);
-
     return;
   }
 
@@ -46,18 +43,20 @@ async function main() {
       email,
       passwordHash,
       role: "ADMIN",
+      isBlocked: false,
       emailVerifiedAt: new Date(),
     },
   });
 
   console.log("Admin account created successfully.");
+  console.log("Email:", user.email);
   console.log("Role:", user.role);
 }
 
 main()
   .catch((error) => {
     console.error("Create admin error:", error);
-    process.exit(1);
+    process.exitCode = 1;
   })
   .finally(async () => {
     await prisma.$disconnect();

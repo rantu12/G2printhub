@@ -359,7 +359,7 @@ export default async function AdminDashboard({
 
             <p>
               Here&apos;s what&apos;s happening with your
-              G2 PrintHub store.
+              PrintHub store.
             </p>
           </div>
 
@@ -747,7 +747,7 @@ export default async function AdminDashboard({
 
             <p>
               Customer orders will appear here
-              once your G2 PrintHub store starts
+              once your PrintHub store starts
               receiving orders.
             </p>
 
@@ -766,7 +766,7 @@ export default async function AdminDashboard({
               </span>
 
               <h2>
-                Manage your G2 PrintHub store
+                Manage your PrintHub store
               </h2>
             </div>
           </div>
@@ -852,7 +852,7 @@ export default async function AdminDashboard({
 
         <footer className="admin-footer">
           <span>
-            G2 PrintHub Admin Panel
+            PrintHub Admin Panel
           </span>
 
           <span>

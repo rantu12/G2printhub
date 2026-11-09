@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import HomepageSettingsForm from "./homepage-settings-form";
-import InvoiceSettingsForm from "./invoice-settings-form";
 import ShippingTaxSettingsForm from "./shipping-tax-settings-form";
 import StoreSettingsForm from "./store-settings-form";
 
@@ -29,7 +28,7 @@ export default async function AdminSettingsPage() {
             <h1>Store settings</h1>
             <p>
               Configure store identity, customer access, checkout pricing,
-              payment integrations, and homepage content.
+              Cash on Delivery, payment integrations, and homepage content.
             </p>
           </div>
           <Link href="/admin" className="admin-secondary-button">
@@ -38,9 +37,8 @@ export default async function AdminSettingsPage() {
         </header>
         <nav className="admin-settings-category-nav" aria-label="Settings categories">
           <Link href="#general-settings">General &amp; customer access</Link>
-          <Link href="#checkout-settings">Shipping &amp; tax</Link>
+          <Link href="#checkout-settings">Shipping, tax &amp; COD</Link>
           <Link href="/admin/settings/integrations">Payments &amp; integrations</Link>
-          <Link href="#invoice-settings">Invoice</Link>
           <Link href="#homepage-settings">Homepage</Link>
         </nav>
         <div id="general-settings">
@@ -48,9 +46,6 @@ export default async function AdminSettingsPage() {
         </div>
         <div id="checkout-settings">
           <ShippingTaxSettingsForm />
-        </div>
-        <div id="invoice-settings">
-          <InvoiceSettingsForm />
         </div>
         <section className="admin-shipping-tax-card">
           <header>
