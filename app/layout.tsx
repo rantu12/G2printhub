@@ -6,12 +6,11 @@ import { getStoreSettings } from "@/lib/store-settings";
 import { WishlistProvider } from "@/lib/wishlist-context";
 import SiteFooter from "./components/site-footer";
 import SiteHeader from "./components/site-header";
-import WhatsAppChatButton from "./components/whatsapp-chat-button";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "G2 PrintHub",
-  description: "Print anything with G2 PrintHub.",
+  title: "PrintHub",
+  description: "Print anything with PrintHub.",
 };
 
 export default function RootLayout({
@@ -48,30 +47,17 @@ async function renderRootLayout(children: React.ReactNode) {
                 Administrator sign in
               </a>
             </div>
-            <WhatsAppChatButton
-              whatsappNumber={maintenanceSettings?.whatsappNumber ?? ""}
-            />
           </main>
         ) : (
           <CartProvider>
             <WishlistProvider>
               <SiteHeader
-                initialSiteName={maintenanceSettings?.siteName ?? "G2 PrintHub"}
-                initialSiteLogo={maintenanceSettings?.siteLogo ?? ""}
-                initialSiteFavicon={maintenanceSettings?.siteFavicon ?? ""}
-              />
+  initialSiteName={maintenanceSettings?.siteName ?? "PrintHub"}
+  initialSiteLogo={maintenanceSettings?.siteLogo ?? ""}
+  initialSiteFavicon={maintenanceSettings?.siteFavicon ?? ""}
+/>
               {children}
-              <SiteFooter
-                initialSiteName={maintenanceSettings?.siteName ?? "G2 PrintHub"}
-                initialSupportEmail={maintenanceSettings?.supportEmail ?? ""}
-                initialSupportPhone={maintenanceSettings?.supportPhone ?? ""}
-                initialStoreAddress={maintenanceSettings?.storeAddress ?? ""}
-              />
-              {!isAdminRoute && (
-                <WhatsAppChatButton
-                  whatsappNumber={maintenanceSettings?.whatsappNumber ?? ""}
-                />
-              )}
+              <SiteFooter />
             </WishlistProvider>
           </CartProvider>
         )}
